@@ -1159,8 +1159,7 @@ class MainWindow(QMainWindow):
                 QMessageBox.information(
                     self,
                     "Sincronização de Disco",
-                    f"Sincronização concluída com sucesso!\n\nForam encontrados e adicionados {len(added_titles)} novos documentos no manifesto:\n"
-                    + "\n".join(f"- {title}" for title in added_titles),
+                    f"Sincronização concluída com sucesso!\n\nForam sincronizados {len(added_titles)} documentos no manifesto de acordo com a estrutura física de arquivos do disco.",
                 )
             else:
                 self._log_info(
