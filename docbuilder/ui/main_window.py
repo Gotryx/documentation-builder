@@ -66,6 +66,7 @@ from docbuilder.core.services.project_services import (
     LoadProjectUseCase,
     SaveProjectUseCase,
     ImportDocumentUseCase,
+    SyncFolderFilesUseCase,
 )
 from docbuilder.core.services.workspace_services import (
     LoadWorkspaceUseCase,
@@ -271,6 +272,12 @@ class MainWindow(QMainWindow):
         tree_buttons_2.addWidget(self.btn_delete)
         left_layout.addLayout(tree_buttons_2)
 
+        tree_buttons_3 = QHBoxLayout()
+        self.btn_sync_folder = QPushButton("Sincronizar Disco")
+        self.btn_sync_folder.clicked.connect(self._on_sync_folder_files)
+        tree_buttons_3.addWidget(self.btn_sync_folder)
+        left_layout.addLayout(tree_buttons_3)
+
         h_splitter.addWidget(left_frame)
 
         # Painel Central: Abas (Visualizador / Pré-visualização)
@@ -370,6 +377,7 @@ class MainWindow(QMainWindow):
         self.btn_add_cap.setEnabled(enabled)
         self.btn_import.setEnabled(enabled)
         self.btn_delete.setEnabled(enabled)
+        self.btn_sync_folder.setEnabled(enabled)
         self.btn_validate.setEnabled(enabled)
         self.btn_build.setEnabled(enabled)
         self.tree_manifest.setEnabled(enabled)
@@ -1097,6 +1105,56 @@ class MainWindow(QMainWindow):
             self._log_info(f"Documento '{doc_dto.title}' importado com sucesso.")
         except Exception as e:
             QMessageBox.critical(self, "Erro", str(e))
+
+    def _on_sync_folder_files(self) -> None:
+        """Sincroniza a árvore do manifesto com novos arquivos adicionados fisicamente ao disco."""
+        if not self.current_project or not self.current_project_dir:
+            return
+
+        # Sincroniza primeiro o estado atual da árvore visual da UI para o DTO
+        self._synchronize_dto_from_tree()
+
+        self._log_info("Buscando novos arquivos físicos no disco...")
+
+        # Converte o DTO para Entidade para processar no caso de uso
+        from docbuilder.core.services.project_services import ProjectMappingHelper
+
+        project_entity = ProjectMappingHelper.dto_to_entity(self.current_project)
+
+        use_case = SyncFolderFilesUseCase(self._project_repo)
+        try:
+            added_titles = use_case.execute(project_entity, self.current_project_dir)
+
+            if added_titles:
+                self._log_info(
+                    f"Sincronização concluída. Adicionados {len(added_titles)} documentos: {', '.join(added_titles)}"
+                )
+                # Atualiza o DTO local
+                self.current_project = ProjectMappingHelper.entity_to_dto(
+                    project_entity
+                )
+                # Reconstrói a árvore gráfica
+                self._rebuild_tree_widget()
+                QMessageBox.information(
+                    self,
+                    "Sincronização de Disco",
+                    f"Sincronização concluída com sucesso!\n\nForam encontrados e adicionados {len(added_titles)} novos documentos no manifesto:\n"
+                    + "\n".join(f"- {title}" for title in added_titles),
+                )
+            else:
+                self._log_info(
+                    "Sincronização concluída. Nenhum novo documento físico encontrado."
+                )
+                QMessageBox.information(
+                    self,
+                    "Sincronização de Disco",
+                    "Sincronização concluída!\nNenhum arquivo novo foi encontrado no diretório do projeto.",
+                )
+        except Exception as e:
+            self._log_error(f"Erro ao sincronizar pasta física: {e}")
+            QMessageBox.critical(
+                self, "Erro na Sincronização", f"Não foi possível sincronizar:\n{e}"
+            )
 
     def _on_delete_item(self) -> None:
         selected = self.tree_manifest.currentItem()

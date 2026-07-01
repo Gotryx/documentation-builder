@@ -250,6 +250,141 @@ class CreateProjectUseCase:
             pass
 
 
+class SyncFolderFilesUseCase:
+    """Caso de uso para escanear a pasta do projeto em busca de novos documentos físicos no disco."""
+
+    def __init__(self, repository: IProjectRepository) -> None:
+        self._repository = repository
+
+    def execute(self, project: Project, project_dir: Path) -> List[str]:
+        # 1. Obtém os caminhos relativos dos documentos que já estão no manifesto
+        existing_paths = set()
+        for vol in project.volumes:
+            for part in vol.parts:
+                for cap in part.chapters:
+                    for doc in cap.documents:
+                        existing_paths.add(doc.file_path)
+
+        # 2. Varre o diretório em busca de documentos no disco
+        supported_extensions = {
+            ".md",
+            ".markdown",
+            ".docx",
+            ".odt",
+            ".txt",
+            ".html",
+            ".htm",
+        }
+        found_files: List[Path] = []
+        self._scan_directory(
+            project_dir,
+            project_dir,
+            supported_extensions,
+            found_files,
+            depth=0,
+            max_depth=3,
+        )
+
+        # 3. Filtra os arquivos que não estão no manifesto
+        new_files = []
+        for file_path in sorted(found_files, key=lambda p: str(p)):
+            relative_path = file_path.relative_to(project_dir)
+            if str(relative_path) not in existing_paths:
+                new_files.append(file_path)
+
+        if not new_files:
+            return []
+
+        # 4. Adiciona os novos arquivos como capítulos dedicados
+        # Adicionaremos na primeira Parte do primeiro Volume disponível
+        if not project.volumes:
+            vol = Volume(title="Volume I - Documentação")
+            project.add_volume(vol)
+        else:
+            vol = project.volumes[0]
+
+        if not vol.parts:
+            part = Part(title="Parte I - Conteúdo Geral")
+            vol.add_part(part)
+        else:
+            part = vol.parts[0]
+
+        # Descobre o índice sequencial para os capítulos
+        start_idx = len(part.chapters) + 1
+        added_titles = []
+
+        for idx, file_path in enumerate(new_files):
+            relative_path = file_path.relative_to(project_dir)
+
+            # Formata o título do capítulo
+            parts_list = list(relative_path.parent.parts)
+            parts_list.append(relative_path.stem)
+            clean_parts = [
+                p.replace("_", " ").replace("-", " ").title()
+                for p in parts_list
+                if p and p != "."
+            ]
+            chapter_title = f"Capítulo {start_idx + idx:02d} - " + " - ".join(
+                clean_parts
+            )
+
+            ext = file_path.suffix.lower().replace(".", "")
+            fmt = "markdown" if ext in ["md", "markdown"] else ext
+
+            from docbuilder.core.domain.entities import Document, Chapter
+
+            doc = Document(
+                title=file_path.stem.replace("_", " ").replace("-", " ").title(),
+                file_path=str(relative_path),
+                format=fmt,
+            )
+
+            chapter = Chapter(title=chapter_title)
+            chapter.add_document(doc)
+            part.add_chapter(chapter)
+            added_titles.append(doc.title)
+
+        # 5. Salva o manifesto com a nova estrutura adicionada
+        self._repository.save(project, project_dir)
+        return added_titles
+
+    def _scan_directory(
+        self,
+        base_dir: Path,
+        current_dir: Path,
+        extensions: set,
+        file_list: list,
+        depth: int,
+        max_depth: int,
+    ) -> None:
+        if depth > max_depth:
+            return
+
+        try:
+            for item in current_dir.iterdir():
+                # Ignora arquivos/pastas ocultas, diretórios de build, recursos, pastas de exemplo geradas e ambientes virtuais
+                if item.name.startswith(".") or item.name in [
+                    "dist",
+                    "resources",
+                    "documents",
+                    "__pycache__",
+                    "node_modules",
+                    "ambiente",
+                    "venv",
+                    ".venv",
+                ]:
+                    continue
+
+                if item.is_file() and item.suffix.lower() in extensions:
+                    file_list.append(item)
+                elif item.is_dir():
+                    self._scan_directory(
+                        base_dir, item, extensions, file_list, depth + 1, max_depth
+                    )
+        except PermissionError:
+            pass
+
+
 class LoadProjectUseCase:
     """Caso de uso para carregar um projeto existente do disco."""
 
