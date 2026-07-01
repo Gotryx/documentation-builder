@@ -48,8 +48,8 @@ class WikiServer:
         # Configura o handler para servir a partir do diretório correto
         # No Python 3.7+, SimpleHTTPRequestHandler aceita o parâmetro directory
         class Handler(WikiHTTPRequestHandler):
-            def __init__(*args, **kwargs):
-                super().__init__(*args, directory=str(directory), **kwargs)
+            def __init__(self, request, client_address, server):
+                super().__init__(request, client_address, server, directory=str(directory))
 
         try:
             self._server = HTTPServer(("127.0.0.1", self._port), Handler)
