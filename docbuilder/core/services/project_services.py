@@ -342,15 +342,7 @@ class SyncFolderFilesUseCase:
         self._repository = repository
 
     def execute(self, project: Project, project_dir: Path) -> List[str]:
-        # 1. Obtém os caminhos relativos dos documentos que já estão no manifesto
-        existing_paths = set()
-        for vol in project.volumes:
-            for part in vol.parts:
-                for cap in part.chapters:
-                    for doc in cap.documents:
-                        existing_paths.add(doc.file_path)
-
-        # 2. Varre o diretório em busca de documentos no disco
+        # 1. Varre o diretório em busca de todos os documentos no disco
         supported_extensions = {
             ".md",
             ".markdown",
@@ -370,36 +362,29 @@ class SyncFolderFilesUseCase:
             max_depth=3,
         )
 
-        # 3. Filtra os arquivos que não estão no manifesto
-        new_files = []
-        for file_path in sorted(found_files, key=lambda p: str(p)):
-            relative_path = file_path.relative_to(project_dir)
-            if str(relative_path) not in existing_paths:
-                new_files.append(file_path)
-
-        if not new_files:
+        if not found_files:
             return []
 
-        # 4. Adiciona os novos arquivos respeitando o structure_mode do projeto
-        if not project.volumes:
-            vol = Volume(title="Volume I - Documentação")
-            project.add_volume(vol)
-        else:
-            vol = project.volumes[0]
-
+        # Ordena os arquivos para consistência
+        sorted_files = sorted(found_files, key=lambda p: str(p))
         added_titles = []
+
+        # 2. Limpa os volumes atuais para reestruturá-los do zero
+        project.volumes = []
+
+        from docbuilder.core.domain.entities import Volume
+
+        vol = Volume(title="Volume I - Documentação")
+        project.add_volume(vol)
 
         if project.structure_mode == "fluid":
             # Modo Fluido (Linear / Flat)
-            if not vol.parts:
-                part = Part(title="Parte I - Conteúdo Geral")
-                vol.add_part(part)
-            else:
-                part = vol.parts[0]
+            from docbuilder.core.domain.entities import Part, Chapter, Document
 
-            start_idx = len(part.chapters) + 1
+            part = Part(title="Parte I - Conteúdo Geral")
+            vol.add_part(part)
 
-            for idx, file_path in enumerate(new_files):
+            for idx, file_path in enumerate(sorted_files):
                 relative_path = file_path.relative_to(project_dir)
 
                 # Formata o título do capítulo
@@ -410,14 +395,10 @@ class SyncFolderFilesUseCase:
                     for p in parts_list
                     if p and p != "."
                 ]
-                chapter_title = f"Capítulo {start_idx + idx:02d} - " + " - ".join(
-                    clean_parts
-                )
+                chapter_title = f"Capítulo {idx + 1:02d} - " + " - ".join(clean_parts)
 
                 ext = file_path.suffix.lower().replace(".", "")
                 fmt = "markdown" if ext in ["md", "markdown"] else ext
-
-                from docbuilder.core.domain.entities import Document, Chapter
 
                 doc = Document(
                     title=file_path.stem.replace("_", " ").replace("-", " ").title(),
@@ -437,7 +418,13 @@ class SyncFolderFilesUseCase:
                 Part as DomainPart,
             )
 
-            for file_path in new_files:
+            default_part = DomainPart(title="Parte I - Conteúdo Geral")
+            vol.add_part(default_part)
+
+            parts_map = {}
+            chapters_map = {}
+
+            for file_path in sorted_files:
                 relative_path = file_path.relative_to(project_dir)
                 parts_list = list(relative_path.parent.parts)
 
@@ -452,37 +439,24 @@ class SyncFolderFilesUseCase:
 
                 if not parts_list or str(relative_path.parent) == ".":
                     # Arquivo solto na raiz: vai para a primeira parte
-                    if not vol.parts:
-                        target_part = DomainPart(title="Parte I - Conteúdo Geral")
-                        vol.add_part(target_part)
-                    else:
-                        target_part = vol.parts[0]
-
                     chapter_title = (
-                        f"Capítulo {len(target_part.chapters) + 1:02d} - {doc.title}"
+                        f"Capítulo {len(default_part.chapters) + 1:02d} - {doc.title}"
                     )
                     chapter = Chapter(title=chapter_title)
                     chapter.add_document(doc)
-                    target_part.add_chapter(chapter)
+                    default_part.add_chapter(chapter)
                     added_titles.append(doc.title)
                 else:
                     # Arquivo dentro de subpastas
-                    part_title_base = (
-                        parts_list[0].replace("_", " ").replace("-", " ").title()
-                    )
-
-                    # Procura por uma parte correspondente existente
-                    target_part = None
-                    for existing_part in vol.parts:
-                        if part_title_base.lower() in existing_part.title.lower():
-                            target_part = existing_part
-                            break
-
-                    if not target_part:
+                    part_key = parts_list[0]
+                    if part_key not in parts_map:
                         part_num = len(vol.parts) + 1
-                        part_title = f"Parte {part_num:02d} - {part_title_base}"
-                        target_part = DomainPart(title=part_title)
-                        vol.add_part(target_part)
+                        part_title = f"Parte {part_num:02d} - {part_key.replace('_', ' ').replace('-', ' ').title()}"
+                        new_part = DomainPart(title=part_title)
+                        vol.add_part(new_part)
+                        parts_map[part_key] = new_part
+
+                    target_part = parts_map[part_key]
 
                     # Define o título do capítulo com base nas pastas de nível 2+ e arquivo
                     if len(parts_list) > 1:
@@ -494,23 +468,27 @@ class SyncFolderFilesUseCase:
                     else:
                         cap_key = doc.title
 
-                    # Procura por um capítulo correspondente existente na parte
-                    target_chapter = None
-                    for existing_cap in target_part.chapters:
-                        if cap_key.lower() in existing_cap.title.lower():
-                            target_chapter = existing_cap
-                            break
-
-                    if not target_chapter:
+                    cap_map_key = (target_part.id, cap_key)
+                    if cap_map_key not in chapters_map:
                         cap_num = len(target_part.chapters) + 1
                         chapter_title = f"Capítulo {cap_num:02d} - {cap_key}"
                         target_chapter = Chapter(title=chapter_title)
                         target_part.add_chapter(target_chapter)
+                        chapters_map[cap_map_key] = target_chapter
 
+                    target_chapter = chapters_map[cap_map_key]
                     target_chapter.add_document(doc)
                     added_titles.append(doc.title)
 
-        # 5. Salva o manifesto com a nova estrutura adicionada
+            # Remove a Parte Geral se ela ficou sem capítulos
+            if not default_part.chapters:
+                vol.parts.remove(default_part)
+                # Reordena a numeração das outras partes
+                for p_idx, p in enumerate(vol.parts):
+                    title_clean = p.title.split(" - ", 1)[-1]
+                    p.title = f"Parte {p_idx + 1:02d} - {title_clean}"
+
+        # 4. Salva o manifesto com a nova estrutura adicionada
         self._repository.save(project, project_dir)
         return added_titles
 
