@@ -25,7 +25,9 @@ class PdfExporter(IExporter):
     def get_supported_format(self) -> str:
         return "pdf"
 
-    def export(self, source_document_path: Path, output_path: Path, template: TemplateStyle) -> None:
+    def export(
+        self, source_document_path: Path, output_path: Path, template: TemplateStyle
+    ) -> None:
         # Cria uma pasta temporária segura para a conversão intermediária
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_dir_path = Path(temp_dir)
@@ -43,16 +45,16 @@ class PdfExporter(IExporter):
                 "pdf",
                 "--outdir",
                 str(temp_dir_path),
-                str(temp_docx_path)
+                str(temp_docx_path),
             ]
 
             try:
-                result = subprocess.run(
+                subprocess.run(
                     cmd,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     text=True,
-                    check=True
+                    check=True,
                 )
             except subprocess.CalledProcessError as e:
                 raise RuntimeError(
@@ -68,12 +70,14 @@ class PdfExporter(IExporter):
             # O LibreOffice cria um arquivo com o mesmo nome, alterando apenas a extensão para .pdf
             generated_pdf = temp_dir_path / "documento_intermediario.pdf"
             if not generated_pdf.exists():
-                raise FileNotFoundError("O arquivo PDF esperado não foi gerado pelo LibreOffice.")
+                raise FileNotFoundError(
+                    "O arquivo PDF esperado não foi gerado pelo LibreOffice."
+                )
 
             # 3. Move o PDF temporário para o caminho final de saída
             # Garante que a pasta de destino exista
             output_path.parent.mkdir(parents=True, exist_ok=True)
             if output_path.exists():
                 output_path.unlink()
-            
+
             shutil.move(generated_pdf, output_path)

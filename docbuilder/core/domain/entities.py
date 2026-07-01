@@ -13,6 +13,7 @@ class Version:
     """
     Objeto de Valor que representa a versão do projeto (Major.Minor.Patch.Build).
     """
+
     major: int = 1
     minor: int = 0
     patch: int = 0
@@ -58,6 +59,7 @@ class TemplateStyle:
     """
     Objeto de Valor que define os estilos e especificações visuais de um template.
     """
+
     name: str  # Corporate, Technical, Book, Manual
     font_family: str
     font_size: int
@@ -78,6 +80,7 @@ class Document:
     """
     Entidade que representa um arquivo de documentação individual de entrada.
     """
+
     title: str
     file_path: str  # Caminho relativo ao projeto
     id: UUID = field(default_factory=uuid4)
@@ -98,6 +101,7 @@ class Chapter:
     """
     Entidade que representa um Capítulo, contendo uma lista de documentos.
     """
+
     title: str
     id: UUID = field(default_factory=uuid4)
     documents: List[Document] = field(default_factory=list)
@@ -118,6 +122,7 @@ class Part:
     """
     Entidade que representa uma Parte da documentação, contendo capítulos.
     """
+
     title: str
     id: UUID = field(default_factory=uuid4)
     chapters: List[Chapter] = field(default_factory=list)
@@ -138,6 +143,7 @@ class Volume:
     """
     Entidade que representa um Volume da documentação, contendo partes.
     """
+
     title: str
     id: UUID = field(default_factory=uuid4)
     parts: List[Part] = field(default_factory=list)
@@ -158,6 +164,7 @@ class Project:
     """
     Agregado Raiz que representa uma documentação completa do GoTryx.
     """
+
     name: str
     author: str
     language: str
@@ -189,7 +196,7 @@ class Project:
             errors.append("O autor do projeto não pode estar vazio.")
         if not self.language.strip():
             errors.append("O idioma do projeto não pode estar vazio.")
-        
+
         # Verificar duplicidades de títulos nos volumes
         vol_titles = [v.title.lower() for v in self.volumes]
         if len(vol_titles) != len(set(vol_titles)):

@@ -30,7 +30,7 @@ def test_version_parsing() -> None:
 
 def test_version_increments() -> None:
     v = Version(1, 0, 0, 1)
-    
+
     v.increment_build()
     assert str(v) == "1.0.0.2"
 
@@ -62,7 +62,7 @@ def test_project_volume_duplicate_validation() -> None:
     p = Project(name="Handbook", author="GoTryx", language="pt-BR")
     p.add_volume(Volume(title="Volume I"))
     p.add_volume(Volume(title="Volume I"))  # Duplicado
-    
+
     errors = p.validate()
     assert len(errors) == 1
     assert "duplicados" in errors[0]

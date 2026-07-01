@@ -8,18 +8,37 @@ Toda lógica de negócio é delegada para a camada de Serviços e Use Cases.
 import sys
 import webbrowser
 from pathlib import Path
-from uuid import UUID, uuid4
-from typing import Optional, List, Dict
+from uuid import uuid4
+from typing import Optional
 
-from PySide6.QtCore import Qt, QSize
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
-    QTreeWidget, QTreeWidgetItem, QLabel, QLineEdit, QComboBox,
-    QPushButton, QTextEdit, QCheckBox, QFileDialog, QMessageBox,
-    QTabWidget, QTextBrowser, QFormLayout, QFrame, QStackedWidget,
-    QTableWidget, QTableWidgetItem, QHeaderView, QApplication
+    QMainWindow,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QSplitter,
+    QTreeWidget,
+    QTreeWidgetItem,
+    QLabel,
+    QLineEdit,
+    QComboBox,
+    QPushButton,
+    QTextEdit,
+    QCheckBox,
+    QFileDialog,
+    QMessageBox,
+    QTabWidget,
+    QTextBrowser,
+    QFormLayout,
+    QFrame,
+    QStackedWidget,
+    QTableWidget,
+    QTableWidgetItem,
+    QHeaderView,
+    QApplication,
 )
-from PySide6.QtGui import QIcon, QFont
+from PySide6.QtGui import QIcon
 
 # Importação da camada de Serviços, Repositórios e Domínio
 from docbuilder.core.repositories.project_repository import ProjectRepository
@@ -35,15 +54,29 @@ from docbuilder.core.exporters.html_exporter import HtmlExporter
 from docbuilder.core.exporters.markdown_exporter import MarkdownExporter
 
 from docbuilder.core.domain.workspace import Workspace
-from docbuilder.core.services.dtos import ProjectDTO, VolumeDTO, PartDTO, ChapterDTO, DocumentDTO
+from docbuilder.core.services.dtos import (
+    ProjectDTO,
+    VolumeDTO,
+    PartDTO,
+    ChapterDTO,
+    DocumentDTO,
+)
 from docbuilder.core.services.project_services import (
-    CreateProjectUseCase, LoadProjectUseCase, SaveProjectUseCase, ImportDocumentUseCase
+    CreateProjectUseCase,
+    LoadProjectUseCase,
+    SaveProjectUseCase,
+    ImportDocumentUseCase,
 )
 from docbuilder.core.services.workspace_services import (
-    LoadWorkspaceUseCase, SaveWorkspaceUseCase, RegisterProjectInWorkspaceUseCase
+    LoadWorkspaceUseCase,
+    SaveWorkspaceUseCase,
+    RegisterProjectInWorkspaceUseCase,
 )
 from docbuilder.core.services.sync_services import SyncProjectUseCase
-from docbuilder.core.services.build_services import ValidateProjectUseCase, BuildProjectUseCase
+from docbuilder.core.services.build_services import (
+    ValidateProjectUseCase,
+    BuildProjectUseCase,
+)
 from docbuilder.ui.styles import get_stylesheet
 
 
@@ -114,11 +147,19 @@ class MainWindow(QMainWindow):
         # Tabela de Projetos
         self.table_projects = QTableWidget()
         self.table_projects.setColumnCount(4)
-        self.table_projects.setHorizontalHeaderLabels(["Nome da Documentação", "Versão", "Autor", "Caminho Local"])
+        self.table_projects.setHorizontalHeaderLabels(
+            ["Nome da Documentação", "Versão", "Autor", "Caminho Local"]
+        )
         self.table_projects.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.table_projects.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
-        self.table_projects.setStyleSheet("background-color: #1E293B; border: 1px solid #334155; border-radius: 6px;")
-        self.table_projects.itemDoubleClicked.connect(self._on_project_table_double_click)
+        self.table_projects.horizontalHeader().setSectionResizeMode(
+            3, QHeaderView.ResizeToContents
+        )
+        self.table_projects.setStyleSheet(
+            "background-color: #1E293B; border: 1px solid #334155; border-radius: 6px;"
+        )
+        self.table_projects.itemDoubleClicked.connect(
+            self._on_project_table_double_click
+        )
         layout.addWidget(self.table_projects)
 
         # Ações de Gerenciamento do Portfolio
@@ -126,10 +167,10 @@ class MainWindow(QMainWindow):
         btn_new_proj = QPushButton("Novo Projeto")
         btn_new_proj.setObjectName("accentButton")
         btn_new_proj.clicked.connect(self._on_new_project)
-        
+
         btn_register_existing = QPushButton("Registrar Projeto Existente")
         btn_register_existing.clicked.connect(self._on_register_existing_project)
-        
+
         btn_remove_from_ws = QPushButton("Desvincular do Portfolio")
         btn_remove_from_ws.setObjectName("dangerButton")
         btn_remove_from_ws.clicked.connect(self._on_remove_project_from_workspace)
@@ -179,7 +220,9 @@ class MainWindow(QMainWindow):
         top_bar.addStretch()
 
         self.lbl_active_project = QLabel("Projeto: Nenhum")
-        self.lbl_active_project.setStyleSheet("font-weight: bold; color: #3B82F6; font-size: 14px;")
+        self.lbl_active_project.setStyleSheet(
+            "font-weight: bold; color: #3B82F6; font-size: 14px;"
+        )
         top_bar.addWidget(self.lbl_active_project)
         layout.addLayout(top_bar)
 
@@ -211,7 +254,7 @@ class MainWindow(QMainWindow):
         self.btn_add_part.clicked.connect(self._on_add_part)
         self.btn_add_cap = QPushButton("+ Cap")
         self.btn_add_cap.clicked.connect(self._on_add_chapter)
-        
+
         tree_buttons.addWidget(self.btn_add_vol)
         tree_buttons.addWidget(self.btn_add_part)
         tree_buttons.addWidget(self.btn_add_cap)
@@ -223,7 +266,7 @@ class MainWindow(QMainWindow):
         self.btn_delete = QPushButton("Remover")
         self.btn_delete.setObjectName("dangerButton")
         self.btn_delete.clicked.connect(self._on_delete_item)
-        
+
         tree_buttons_2.addWidget(self.btn_import)
         tree_buttons_2.addWidget(self.btn_delete)
         left_layout.addLayout(tree_buttons_2)
@@ -234,13 +277,15 @@ class MainWindow(QMainWindow):
         center_frame = QFrame()
         center_frame.setObjectName("editorFrame")
         center_layout = QVBoxLayout(center_frame)
-        
+
         self.tab_editor = QTabWidget()
         self.web_preview = QTextBrowser()
-        self.web_preview.setPlaceholderText("Selecione um documento para pré-visualizar o conteúdo.")
+        self.web_preview.setPlaceholderText(
+            "Selecione um documento para pré-visualizar o conteúdo."
+        )
         self.tab_editor.addTab(self.web_preview, "Pré-visualização do Documento")
         center_layout.addWidget(self.tab_editor)
-        
+
         h_splitter.addWidget(center_frame)
 
         # Painel Direito: Formulário de Propriedades
@@ -261,13 +306,13 @@ class MainWindow(QMainWindow):
 
         # Rodapé: Painel de Build e Console de Logs
         bottom_layout = QHBoxLayout()
-        
+
         # Opções de Compilação
         build_frame = QFrame()
         build_frame.setObjectName("sidebarFrame")
         build_layout = QVBoxLayout(build_frame)
         build_layout.addWidget(QLabel("Formatos de Publicação:"))
-        
+
         self.chk_docx = QCheckBox("Documento Word (DOCX)")
         self.chk_docx.setChecked(True)
         self.chk_pdf = QCheckBox("LibreOffice PDF")
@@ -296,7 +341,7 @@ class MainWindow(QMainWindow):
         log_frame.setObjectName("logFrame")
         log_layout = QVBoxLayout(log_frame)
         log_layout.addWidget(QLabel("Log de Publicação e Compilação"))
-        
+
         self.txt_log = QTextEdit()
         self.txt_log.setReadOnly(True)
         log_layout.addWidget(self.txt_log)
@@ -319,7 +364,7 @@ class MainWindow(QMainWindow):
             self.btn_open_portal.setEnabled(self._wiki_server.is_running())
         else:
             self.btn_open_portal.setEnabled(False)
-            
+
         self.btn_add_vol.setEnabled(enabled)
         self.btn_add_part.setEnabled(enabled)
         self.btn_add_cap.setEnabled(enabled)
@@ -350,7 +395,9 @@ class MainWindow(QMainWindow):
             self.lbl_workspace_name.setText(f"Workspace: {self.workspace.name}")
             self._rebuild_projects_table()
         except Exception as e:
-            QMessageBox.critical(self, "Erro", f"Não foi possível carregar o portfólio:\n{e}")
+            QMessageBox.critical(
+                self, "Erro", f"Não foi possível carregar o portfólio:\n{e}"
+            )
 
     def _rebuild_projects_table(self) -> None:
         """Popula a tabela do Dashboard com as informações de metadados de cada projeto."""
@@ -366,20 +413,24 @@ class MainWindow(QMainWindow):
             if not manifest_file.exists():
                 # Removido ou indisponível
                 continue
-            
+
             valid_paths.append(path_str)
 
             try:
                 # Carrega metadados rápidos do manifesto
                 project_dto = LoadProjectUseCase(self._project_repo).execute(path)
-                
+
                 row = self.table_projects.rowCount()
                 self.table_projects.insertRow(row)
-                
+
                 self.table_projects.setItem(row, 0, QTableWidgetItem(project_dto.name))
-                self.table_projects.setItem(row, 1, QTableWidgetItem(project_dto.version))
-                self.table_projects.setItem(row, 2, QTableWidgetItem(project_dto.author))
-                
+                self.table_projects.setItem(
+                    row, 1, QTableWidgetItem(project_dto.version)
+                )
+                self.table_projects.setItem(
+                    row, 2, QTableWidgetItem(project_dto.author)
+                )
+
                 path_item = QTableWidgetItem(str(path))
                 path_item.setToolTip(str(path))
                 self.table_projects.setItem(row, 3, QTableWidgetItem(path_item))
@@ -387,7 +438,9 @@ class MainWindow(QMainWindow):
                 # Se corrompido, exibe informações parciais
                 row = self.table_projects.rowCount()
                 self.table_projects.insertRow(row)
-                self.table_projects.setItem(row, 0, QTableWidgetItem("Projeto Corrompido / Inválido"))
+                self.table_projects.setItem(
+                    row, 0, QTableWidgetItem("Projeto Corrompido / Inválido")
+                )
                 self.table_projects.setItem(row, 1, QTableWidgetItem("-"))
                 self.table_projects.setItem(row, 2, QTableWidgetItem("-"))
                 self.table_projects.setItem(row, 3, QTableWidgetItem(str(path)))
@@ -395,7 +448,9 @@ class MainWindow(QMainWindow):
         # Atualiza a lista caso projetos indisponíveis tenham sido ignorados
         if len(valid_paths) != len(self.workspace.project_paths):
             self.workspace.project_paths = valid_paths
-            SaveWorkspaceUseCase(self._workspace_repo).execute(self.workspace, self.workspace_dir)
+            SaveWorkspaceUseCase(self._workspace_repo).execute(
+                self.workspace, self.workspace_dir
+            )
 
     def _on_project_table_double_click(self, item: QTableWidgetItem) -> None:
         """Ao clicar duas vezes em um projeto na tabela, abre o respectivo editor."""
@@ -411,15 +466,17 @@ class MainWindow(QMainWindow):
         try:
             self.current_project = load_use_case.execute(project_path)
             self.current_project_dir = project_path
-            
+
             # Atualiza labels do Editor
-            self.lbl_active_project.setText(f"Projeto: {self.current_project.name} (v{self.current_project.version})")
+            self.lbl_active_project.setText(
+                f"Projeto: {self.current_project.name} (v{self.current_project.version})"
+            )
             self._rebuild_tree_widget()
-            
+
             # Limpa logs e previews anteriores
             self.txt_log.clear()
             self.web_preview.setHtml("")
-            
+
             # Se o servidor Wiki estiver rodando de outro projeto, encerra
             self._wiki_server.stop()
             self.btn_wiki_server.setText("Iniciar Portal Wiki")
@@ -429,7 +486,11 @@ class MainWindow(QMainWindow):
             self.stacked_widget.setCurrentIndex(1)
             self._log_info(f"Edição aberta: '{self.current_project.name}'")
         except Exception as e:
-            QMessageBox.critical(self, "Erro ao abrir", f"Não foi possível ler os arquivos do projeto:\n{e}")
+            QMessageBox.critical(
+                self,
+                "Erro ao abrir",
+                f"Não foi possível ler os arquivos do projeto:\n{e}",
+            )
 
     def _on_back_to_dashboard(self) -> None:
         """Fecha o editor ativo, encerra o servidor web e retorna ao portfólio."""
@@ -445,23 +506,25 @@ class MainWindow(QMainWindow):
 
     def _on_new_project(self) -> None:
         """Cria e cadastra um novo projeto de documentação corporativa."""
-        folder = QFileDialog.getExistingDirectory(self, "Selecione o diretório para criar o novo projeto")
+        folder = QFileDialog.getExistingDirectory(
+            self, "Selecione o diretório para criar o novo projeto"
+        )
         if not folder:
             return
 
         folder_path = Path(folder)
         create_use_case = CreateProjectUseCase(self._project_repo)
-        
+
         try:
             self.current_project = create_use_case.execute(
                 name="Manual Corporativo Gotryx",
                 author="Administração GoTryx",
                 language="pt-BR",
                 template="Corporate",
-                target_dir=folder_path
+                target_dir=folder_path,
             )
             self.current_project_dir = folder_path
-            
+
             # Registra no Workspace e reconstrói tabela
             register_use_case = RegisterProjectInWorkspaceUseCase(self._workspace_repo)
             self.workspace = register_use_case.execute(folder_path, self.workspace_dir)
@@ -470,11 +533,15 @@ class MainWindow(QMainWindow):
             # Abre no editor diretamente
             self._open_project_in_editor(folder_path)
         except Exception as e:
-            QMessageBox.critical(self, "Erro", f"Não foi possível criar o projeto:\n{e}")
+            QMessageBox.critical(
+                self, "Erro", f"Não foi possível criar o projeto:\n{e}"
+            )
 
     def _on_register_existing_project(self) -> None:
         """Registra uma pasta de documentação existente no Workspace."""
-        folder = QFileDialog.getExistingDirectory(self, "Selecione a pasta do projeto contendo o manifest.yaml")
+        folder = QFileDialog.getExistingDirectory(
+            self, "Selecione a pasta do projeto contendo o manifest.yaml"
+        )
         if not folder:
             return
 
@@ -482,9 +549,10 @@ class MainWindow(QMainWindow):
         manifest_file = folder_path / "manifest.yaml"
         if not manifest_file.exists():
             QMessageBox.critical(
-                self, "Erro de Manifesto",
+                self,
+                "Erro de Manifesto",
                 "O diretório selecionado não é um projeto válido do GoTryx Builder.\n"
-                "Certifique-se de que o arquivo 'manifest.yaml' existe na pasta."
+                "Certifique-se de que o arquivo 'manifest.yaml' existe na pasta.",
             )
             return
 
@@ -492,7 +560,9 @@ class MainWindow(QMainWindow):
             register_use_case = RegisterProjectInWorkspaceUseCase(self._workspace_repo)
             self.workspace = register_use_case.execute(folder_path, self.workspace_dir)
             self._rebuild_projects_table()
-            QMessageBox.information(self, "Sucesso", "Documentação vinculada com sucesso ao portfólio!")
+            QMessageBox.information(
+                self, "Sucesso", "Documentação vinculada com sucesso ao portfólio!"
+            )
         except Exception as e:
             QMessageBox.critical(self, "Erro ao registrar", f"Erro: {e}")
 
@@ -500,23 +570,28 @@ class MainWindow(QMainWindow):
         """Desvincula a pasta do projeto do workspace (sem apagar os arquivos físicos)."""
         selected_row = self.table_projects.currentRow()
         if selected_row < 0:
-            QMessageBox.warning(self, "Alerta", "Selecione um projeto na tabela para desvincular.")
+            QMessageBox.warning(
+                self, "Alerta", "Selecione um projeto na tabela para desvincular."
+            )
             return
 
         path_item = self.table_projects.item(selected_row, 3)
         if path_item and self.workspace:
             proj_path = Path(path_item.text())
-            
+
             confirm = QMessageBox.question(
-                self, "Desvincular Projeto",
+                self,
+                "Desvincular Projeto",
                 f"Tem certeza de que deseja desvincular o projeto '{self.table_projects.item(selected_row, 0).text()}' do portfólio?\n"
                 "Os arquivos físicos da pasta não serão deletados.",
-                QMessageBox.Yes | QMessageBox.No
+                QMessageBox.Yes | QMessageBox.No,
             )
-            
+
             if confirm == QMessageBox.Yes:
                 self.workspace.unregister_project(proj_path)
-                SaveWorkspaceUseCase(self._workspace_repo).execute(self.workspace, self.workspace_dir)
+                SaveWorkspaceUseCase(self._workspace_repo).execute(
+                    self.workspace, self.workspace_dir
+                )
                 self._rebuild_projects_table()
 
     # ==========================================
@@ -529,7 +604,7 @@ class MainWindow(QMainWindow):
             return
 
         dist_dir = self.current_project_dir / "dist"
-        
+
         if self._wiki_server.is_running():
             self._wiki_server.stop()
             self.btn_wiki_server.setText("Iniciar Portal Wiki")
@@ -538,9 +613,10 @@ class MainWindow(QMainWindow):
         else:
             if not dist_dir.exists() or not list(dist_dir.glob("*.html")):
                 QMessageBox.warning(
-                    self, "Portal Wiki",
+                    self,
+                    "Portal Wiki",
                     "Nenhuma compilação HTML encontrada no diretório 'dist/'.\n"
-                    "Gere a documentação marcando o formato 'HTML5 Limpo' antes de abrir o Portal."
+                    "Gere a documentação marcando o formato 'HTML5 Limpo' antes de abrir o Portal.",
                 )
                 return
 
@@ -548,7 +624,9 @@ class MainWindow(QMainWindow):
                 if self._wiki_server.start(dist_dir, port=8080):
                     self.btn_wiki_server.setText("Parar Portal Wiki")
                     self.btn_open_portal.setEnabled(True)
-                    self._log_info(f"Portal Wiki Local iniciado em: {self._wiki_server.get_url()}")
+                    self._log_info(
+                        f"Portal Wiki Local iniciado em: {self._wiki_server.get_url()}"
+                    )
                     # Abre automaticamente na primeira vez
                     webbrowser.open(self._wiki_server.get_url())
                 else:
@@ -574,9 +652,13 @@ class MainWindow(QMainWindow):
         try:
             save_use_case.execute(self.current_project, self.current_project_dir)
             self._log_info("Alterações salvas com sucesso no manifesto do projeto.")
-            self.lbl_active_project.setText(f"Projeto: {self.current_project.name} (v{self.current_project.version})")
+            self.lbl_active_project.setText(
+                f"Projeto: {self.current_project.name} (v{self.current_project.version})"
+            )
         except Exception as e:
-            QMessageBox.critical(self, "Erro ao Salvar", f"Não foi possível salvar:\n{e}")
+            QMessageBox.critical(
+                self, "Erro ao Salvar", f"Não foi possível salvar:\n{e}"
+            )
 
     def _rebuild_tree_widget(self) -> None:
         self.tree_manifest.clear()
@@ -594,21 +676,27 @@ class MainWindow(QMainWindow):
             vol_item.setText(0, vol.title)
             vol_item.setData(0, Qt.UserRole, "VOLUME")
             vol_item.setData(1, Qt.UserRole, vol.id)
-            vol_item.setFlags(vol_item.flags() | Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled)
+            vol_item.setFlags(
+                vol_item.flags() | Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
+            )
 
             for part in vol.parts:
                 part_item = QTreeWidgetItem(vol_item)
                 part_item.setText(0, part.title)
                 part_item.setData(0, Qt.UserRole, "PART")
                 part_item.setData(1, Qt.UserRole, part.id)
-                part_item.setFlags(part_item.flags() | Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled)
+                part_item.setFlags(
+                    part_item.flags() | Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
+                )
 
                 for cap in part.chapters:
                     cap_item = QTreeWidgetItem(part_item)
                     cap_item.setText(0, cap.title)
                     cap_item.setData(0, Qt.UserRole, "CHAPTER")
                     cap_item.setData(1, Qt.UserRole, cap.id)
-                    cap_item.setFlags(cap_item.flags() | Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled)
+                    cap_item.setFlags(
+                        cap_item.flags() | Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
+                    )
 
                     for doc in cap.documents:
                         doc_item = QTreeWidgetItem(cap_item)
@@ -631,26 +719,36 @@ class MainWindow(QMainWindow):
             vol_item = root_item.child(i)
             if vol_item.data(0, Qt.UserRole) != "VOLUME":
                 continue
-            vol_dto = VolumeDTO(id=vol_item.data(1, Qt.UserRole), title=vol_item.text(0), parts=[])
+            vol_dto = VolumeDTO(
+                id=vol_item.data(1, Qt.UserRole), title=vol_item.text(0), parts=[]
+            )
             for j in range(vol_item.childCount()):
                 part_item = vol_item.child(j)
                 if part_item.data(0, Qt.UserRole) != "PART":
                     continue
-                part_dto = PartDTO(id=part_item.data(1, Qt.UserRole), title=part_item.text(0), chapters=[])
+                part_dto = PartDTO(
+                    id=part_item.data(1, Qt.UserRole),
+                    title=part_item.text(0),
+                    chapters=[],
+                )
                 for k in range(part_item.childCount()):
                     cap_item = part_item.child(k)
                     if cap_item.data(0, Qt.UserRole) != "CHAPTER":
                         continue
-                    cap_dto = ChapterDTO(id=cap_item.data(1, Qt.UserRole), title=cap_item.text(0), documents=[])
-                    for l in range(cap_item.childCount()):
-                        doc_item = cap_item.child(l)
+                    cap_dto = ChapterDTO(
+                        id=cap_item.data(1, Qt.UserRole),
+                        title=cap_item.text(0),
+                        documents=[],
+                    )
+                    for idx_doc in range(cap_item.childCount()):
+                        doc_item = cap_item.child(idx_doc)
                         if doc_item.data(0, Qt.UserRole) != "DOCUMENT":
                             continue
                         doc_dto = DocumentDTO(
                             id=doc_item.data(1, Qt.UserRole),
                             title=doc_item.text(0),
                             file_path=doc_item.data(2, Qt.UserRole),
-                            format=doc_item.data(3, Qt.UserRole) or "markdown"
+                            format=doc_item.data(3, Qt.UserRole) or "markdown",
                         )
                         cap_dto.documents.append(doc_dto)
                     part_dto.chapters.append(cap_dto)
@@ -684,34 +782,48 @@ class MainWindow(QMainWindow):
             return
 
         self.properties_form.addRow(QLabel("<b>Metadados do Projeto</b>"))
-        
+
         txt_name = QLineEdit(self.current_project.name)
         txt_name.textChanged.connect(self._update_project_name_live)
         self.properties_form.addRow("Nome:", txt_name)
 
         txt_author = QLineEdit(self.current_project.author)
-        txt_author.textChanged.connect(lambda t: setattr(self.current_project, "author", t))
+        txt_author.textChanged.connect(
+            lambda t: setattr(self.current_project, "author", t)
+        )
         self.properties_form.addRow("Autor:", txt_author)
 
         txt_version = QLineEdit(self.current_project.version)
-        txt_version.textChanged.connect(lambda t: setattr(self.current_project, "version", t))
+        txt_version.textChanged.connect(
+            lambda t: setattr(self.current_project, "version", t)
+        )
         self.properties_form.addRow("Versão:", txt_version)
 
         txt_lang = QLineEdit(self.current_project.language)
-        txt_lang.textChanged.connect(lambda t: setattr(self.current_project, "language", t))
+        txt_lang.textChanged.connect(
+            lambda t: setattr(self.current_project, "language", t)
+        )
         self.properties_form.addRow("Idioma:", txt_lang)
 
         cmb_template = QComboBox()
         cmb_template.addItems(self._template_repo.list_available_templates())
         cmb_template.setCurrentText(self.current_project.template_name)
-        cmb_template.currentTextChanged.connect(lambda t: setattr(self.current_project, "template_name", t))
+        cmb_template.currentTextChanged.connect(
+            lambda t: setattr(self.current_project, "template_name", t)
+        )
         self.properties_form.addRow("Estilo de Template:", cmb_template)
 
         # Sincronização Git Cloud
-        self.properties_form.addRow(QLabel("<b>Publicação e Controle de Versão (Git)</b>"))
-        
+        self.properties_form.addRow(
+            QLabel("<b>Publicação e Controle de Versão (Git)</b>")
+        )
+
         # Recupera URL remota configurada (se houver)
-        remote_url_str = self.current_project.global_settings.get("remote_url", "") if hasattr(self.current_project, "global_settings") else ""
+        remote_url_str = (
+            self.current_project.global_settings.get("remote_url", "")
+            if hasattr(self.current_project, "global_settings")
+            else ""
+        )
         self.txt_remote_url = QLineEdit(remote_url_str)
         self.txt_remote_url.setPlaceholderText("https://github.com/empresa/repo.git")
         self.txt_remote_url.textChanged.connect(self._validate_git_sync_state)
@@ -736,11 +848,13 @@ class MainWindow(QMainWindow):
             return
 
         remote_url = self.txt_remote_url.text().strip()
-        
+
         # 1. Campo não pode estar vazio
         if not remote_url:
             self.btn_sync.setEnabled(False)
-            self.btn_sync.setToolTip("Insira a URL do repositório remoto para habilitar a sincronização.")
+            self.btn_sync.setToolTip(
+                "Insira a URL do repositório remoto para habilitar a sincronização."
+            )
             return
 
         # 2. O diretório do projeto deve possuir um repositório Git inicializado (.git existe)
@@ -750,7 +864,9 @@ class MainWindow(QMainWindow):
 
         if not is_git_repo:
             self.btn_sync.setEnabled(False)
-            self.btn_sync.setToolTip("O diretório ativo do projeto não possui um repositório Git inicializado (.git).")
+            self.btn_sync.setToolTip(
+                "O diretório ativo do projeto não possui um repositório Git inicializado (.git)."
+            )
             return
 
         # 3. Validação de prefixo básico da URL
@@ -759,12 +875,16 @@ class MainWindow(QMainWindow):
 
         if not is_valid_url:
             self.btn_sync.setEnabled(False)
-            self.btn_sync.setToolTip("URL remota inválida. Use formatos HTTPS (https://) ou SSH (git@).")
+            self.btn_sync.setToolTip(
+                "URL remota inválida. Use formatos HTTPS (https://) ou SSH (git@)."
+            )
             return
 
         # Passou em todas as validações, ativa o botão
         self.btn_sync.setEnabled(True)
-        self.btn_sync.setToolTip("Clique para sincronizar suas alterações com o repositório remoto (Git Push).")
+        self.btn_sync.setToolTip(
+            "Clique para sincronizar suas alterações com o repositório remoto (Git Push)."
+        )
 
     def _update_project_name_live(self, text: str) -> None:
         if self.current_project:
@@ -780,33 +900,47 @@ class MainWindow(QMainWindow):
         self._on_save_project()
 
         self._log_info("Iniciando publicação automática no Git...")
-        
+
         # Armazena a URL no DTO
         if not hasattr(self.current_project, "global_settings"):
             self.current_project.global_settings = {}
-        
+
         remote_url = self.txt_remote_url.text().strip()
         self.current_project.global_settings["remote_url"] = remote_url
-        
+
         # Salva o manifest atualizado com a URL
-        SaveProjectUseCase(self._project_repo).execute(self.current_project, self.current_project_dir)
+        SaveProjectUseCase(self._project_repo).execute(
+            self.current_project, self.current_project_dir
+        )
 
         # Instancia e roda a sincronização
         git_prov = GitStorage()
         sync_use_case = SyncProjectUseCase(git_prov)
-        
+
         credentials = {"remote_url": remote_url} if remote_url else {}
-        
+
         success = sync_use_case.execute(self.current_project_dir, credentials)
         if success:
-            self._log_info(f"Documentação publicada e tag de release criada com sucesso no repositório local/remoto!")
-            QMessageBox.information(self, "Sincronização", "Repositório sincronizado e tag de release criada!")
+            self._log_info(
+                "Documentação publicada e tag de release criada com sucesso no repositório local/remoto!"
+            )
+            QMessageBox.information(
+                self,
+                "Sincronização",
+                "Repositório sincronizado e tag de release criada!",
+            )
         else:
-            self._log_error("Falha ao sincronizar projeto com o controle de versão Git.")
-            QMessageBox.critical(self, "Sincronização", "Ocorreu um erro ao rodar a sincronização Git.")
+            self._log_error(
+                "Falha ao sincronizar projeto com o controle de versão Git."
+            )
+            QMessageBox.critical(
+                self, "Sincronização", "Ocorreu um erro ao rodar a sincronização Git."
+            )
 
     def _show_structural_properties(self, item: QTreeWidgetItem) -> None:
-        self.properties_form.addRow(QLabel(f"<b>Metadados do {item.data(0, Qt.UserRole).title()}</b>"))
+        self.properties_form.addRow(
+            QLabel(f"<b>Metadados do {item.data(0, Qt.UserRole).title()}</b>")
+        )
         txt_title = QLineEdit(item.text(0))
         txt_title.textChanged.connect(item.setText)
         self.properties_form.addRow("Título:", txt_title)
@@ -830,12 +964,15 @@ class MainWindow(QMainWindow):
 
     def _load_document_preview(self, file_path: Path, doc_format: str) -> None:
         if not file_path.exists():
-            self.web_preview.setHtml("<span style='color: red;'>Erro: Arquivo físico ausente.</span>")
+            self.web_preview.setHtml(
+                "<span style='color: red;'>Erro: Arquivo físico ausente.</span>"
+            )
             return
         try:
             # Pré-visualização nativa para arquivos DOCX
             if doc_format == "docx":
                 import docx
+
                 doc = docx.Document(file_path)
                 html_parts = []
                 for p in doc.paragraphs:
@@ -846,7 +983,9 @@ class MainWindow(QMainWindow):
                         else:
                             html_parts.append(f"<p>{text}</p>")
                 if not html_parts:
-                    self.web_preview.setHtml("<p><i>[Documento DOCX vazio ou sem parágrafos de texto]</i></p>")
+                    self.web_preview.setHtml(
+                        "<p><i>[Documento DOCX vazio ou sem parágrafos de texto]</i></p>"
+                    )
                 else:
                     self.web_preview.setHtml("".join(html_parts))
                 return
@@ -861,14 +1000,19 @@ class MainWindow(QMainWindow):
 
             if doc_format in ["markdown", "md"]:
                 import markdown
-                html = markdown.markdown(text, extensions=['tables', 'fenced_code'])
+
+                html = markdown.markdown(text, extensions=["tables", "fenced_code"])
                 self.web_preview.setHtml(html)
             elif doc_format in ["html", "txt"]:
                 self.web_preview.setHtml(text)
             else:
-                self.web_preview.setHtml(f"<i>Sem preview disponível para {doc_format.upper()}.</i>")
+                self.web_preview.setHtml(
+                    f"<i>Sem preview disponível para {doc_format.upper()}.</i>"
+                )
         except Exception as e:
-            self.web_preview.setHtml(f"<span style='color: red;'>Erro de leitura: {e}</span>")
+            self.web_preview.setHtml(
+                f"<span style='color: red;'>Erro de leitura: {e}</span>"
+            )
 
     # ==========================================
     # ADIÇÃO E REMOÇÃO DE SEÇÕES (TELA 2)
@@ -915,11 +1059,15 @@ class MainWindow(QMainWindow):
             return
         selected = self.tree_manifest.currentItem()
         if not selected or selected.data(0, Qt.UserRole) != "CHAPTER":
-            QMessageBox.warning(self, "Alerta", "Selecione um Capítulo na árvore antes.")
+            QMessageBox.warning(
+                self, "Alerta", "Selecione um Capítulo na árvore antes."
+            )
             return
 
         file_filter = "Arquivos Suportados (*.md *.markdown *.docx *.odt *.txt *.html)"
-        file_path, _ = QFileDialog.getOpenFileName(self, "Importar Documento", "", file_filter)
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Importar Documento", "", file_filter
+        )
         if not file_path:
             return
 
@@ -949,7 +1097,9 @@ class MainWindow(QMainWindow):
             self._log_info("Item removido. Salve as alterações para gravar.")
 
     def _on_structure_reordered(self, *args) -> None:
-        self._log_info("Estrutura reordenada por Drag & Drop. Salve as alterações para gravar.")
+        self._log_info(
+            "Estrutura reordenada por Drag & Drop. Salve as alterações para gravar."
+        )
 
     # ==========================================
     # PIPELINE DE BUILD E VALIDAÇÃO (TELA 2)
@@ -961,14 +1111,20 @@ class MainWindow(QMainWindow):
         self._synchronize_dto_from_tree()
         self.txt_log.clear()
         self._log_info("Validando documentação...")
-        result = ValidateProjectUseCase(self._template_repo).execute(self.current_project, self.current_project_dir)
-        
+        result = ValidateProjectUseCase(self._template_repo).execute(
+            self.current_project, self.current_project_dir
+        )
+
         if result.is_valid:
             self._log_info("Validação concluída: Projeto consistente!")
-            QMessageBox.information(self, "Validação", "Estrutura do projeto está consistente!")
+            QMessageBox.information(
+                self, "Validação", "Estrutura do projeto está consistente!"
+            )
         else:
             self._log_error("Validação concluída: Erros impeditivos encontrados!")
-            QMessageBox.warning(self, "Validação", "Erros estruturais encontrados. Verifique o console.")
+            QMessageBox.warning(
+                self, "Validação", "Erros estruturais encontrados. Verifique o console."
+            )
 
         for warn in result.warnings:
             self._log_warning(warn)
@@ -982,7 +1138,7 @@ class MainWindow(QMainWindow):
         # Desabilita todos os botões e interações do editor durante o build
         self._set_editor_buttons_enabled(False)
         QApplication.processEvents()  # Força o Qt a processar e pintar as alterações da UI na tela imediatamente
-        
+
         try:
             self._synchronize_dto_from_tree()
             self.txt_log.clear()
@@ -998,12 +1154,16 @@ class MainWindow(QMainWindow):
                 formats.append("md")
 
             if not formats:
-                QMessageBox.warning(self, "Alerta", "Selecione ao menos um formato de saída.")
+                QMessageBox.warning(
+                    self, "Alerta", "Selecione ao menos um formato de saída."
+                )
                 return
 
             # Validação automática
             self._log_info("Validando antes de publicar...")
-            val_result = ValidateProjectUseCase(self._template_repo).execute(self.current_project, self.current_project_dir)
+            val_result = ValidateProjectUseCase(self._template_repo).execute(
+                self.current_project, self.current_project_dir
+            )
             if not val_result.is_valid:
                 self._log_error("Cancelado devido a inconsistências:")
                 for err in val_result.errors:
@@ -1016,9 +1176,15 @@ class MainWindow(QMainWindow):
             html_exp = HtmlExporter()
             md_exp = MarkdownExporter()
 
-            use_case = BuildProjectUseCase(self._template_repo, DocumentBuilder(), [docx_exp, pdf_exp, html_exp, md_exp])
+            use_case = BuildProjectUseCase(
+                self._template_repo,
+                DocumentBuilder(),
+                [docx_exp, pdf_exp, html_exp, md_exp],
+            )
             self._log_info("Iniciando compilação de publicação...")
-            result = use_case.execute(self.current_project, self.current_project_dir, formats)
+            result = use_case.execute(
+                self.current_project, self.current_project_dir, formats
+            )
 
             for log in result.logs:
                 if "ERRO" in log or "Erro" in log:
@@ -1030,11 +1196,15 @@ class MainWindow(QMainWindow):
 
             if result.success:
                 self._log_info("Publicação concluída com sucesso!")
-                QMessageBox.information(self, "Sucesso", "Documentação gerada com sucesso na pasta dist/!")
+                QMessageBox.information(
+                    self, "Sucesso", "Documentação gerada com sucesso na pasta dist/!"
+                )
                 # Se o servidor Wiki estiver rodando, reinicia-o silenciosamente para atualizar o conteúdo
                 if self._wiki_server.is_running():
                     self._wiki_server.stop()
-                    self._wiki_server.start(self.current_project_dir / "dist", port=8080)
+                    self._wiki_server.start(
+                        self.current_project_dir / "dist", port=8080
+                    )
             else:
                 QMessageBox.critical(self, "Falha de Publicação", result.message)
         finally:
@@ -1054,7 +1224,6 @@ def run_app(workspace_dir: Optional[Path] = None) -> None:
     sys.exit(app.exec())
 
 
-from PySide6.QtWidgets import QApplication
 if __name__ == "__main__":
     run_app()
 Pre_push = True

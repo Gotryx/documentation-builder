@@ -10,6 +10,7 @@ from typing import List, Optional
 @dataclass
 class DocumentDTO:
     """DTO para transporte de informações de documentos individuais."""
+
     id: str
     title: str
     file_path: str
@@ -19,6 +20,7 @@ class DocumentDTO:
 @dataclass
 class ChapterDTO:
     """DTO para transporte de informações de capítulos."""
+
     id: str
     title: str
     documents: List[DocumentDTO] = field(default_factory=list)
@@ -27,6 +29,7 @@ class ChapterDTO:
 @dataclass
 class PartDTO:
     """DTO para transporte de informações de partes."""
+
     id: str
     title: str
     chapters: List[ChapterDTO] = field(default_factory=list)
@@ -35,6 +38,7 @@ class PartDTO:
 @dataclass
 class VolumeDTO:
     """DTO para transporte de informações de volumes."""
+
     id: str
     title: str
     parts: List[PartDTO] = field(default_factory=list)
@@ -43,6 +47,7 @@ class VolumeDTO:
 @dataclass
 class ProjectDTO:
     """DTO para transporte de informações completas do projeto."""
+
     name: str
     author: str
     language: str
@@ -56,6 +61,7 @@ class ProjectDTO:
 @dataclass
 class ValidationResultDTO:
     """DTO contendo informações das validações pré-build."""
+
     is_valid: bool
     errors: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
@@ -64,6 +70,7 @@ class ValidationResultDTO:
 @dataclass
 class BuildResultDTO:
     """DTO que contém o resultado do processo de compilação."""
+
     success: bool
     message: str
     output_files: List[str] = field(default_factory=list)

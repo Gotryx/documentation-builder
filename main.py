@@ -19,12 +19,18 @@ def main() -> None:
         # Remove a flag '--cli' para que o argparse na cli.py não quebre
         sys.argv.pop(1)
         from docbuilder.app.cli import main as cli_main
+
         cli_main()
     else:
         # Modo GUI por padrão
         from docbuilder.ui.main_window import run_app
+
         # Pode passar um diretório inicial se for provido como argumento
-        start_dir = Path(sys.argv[1]) if len(sys.argv) > 1 and Path(sys.argv[1]).exists() else None
+        start_dir = (
+            Path(sys.argv[1])
+            if len(sys.argv) > 1 and Path(sys.argv[1]).exists()
+            else None
+        )
         run_app(start_dir)
 
 

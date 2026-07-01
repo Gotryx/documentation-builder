@@ -7,7 +7,9 @@ from pathlib import Path
 from docbuilder.core.domain.workspace import Workspace
 from docbuilder.core.repositories.workspace_repository import WorkspaceRepository
 from docbuilder.core.services.workspace_services import (
-    LoadWorkspaceUseCase, SaveWorkspaceUseCase, RegisterProjectInWorkspaceUseCase
+    LoadWorkspaceUseCase,
+    SaveWorkspaceUseCase,
+    RegisterProjectInWorkspaceUseCase,
 )
 
 
@@ -15,7 +17,9 @@ def test_workspace_domain_registration() -> None:
     ws = Workspace(name="GoTryx Docs")
     assert len(ws.project_paths) == 0
 
-    proj_dir = Path("/mnt/home/alexandre/Projetos/Gotryx/projeto/documentation/builder/projeto_a")
+    proj_dir = Path(
+        "/mnt/home/alexandre/Projetos/Gotryx/projeto/documentation/builder/projeto_a"
+    )
     ws.register_project(proj_dir)
     assert len(ws.project_paths) == 1
     assert ws.project_paths[0] == str(proj_dir.resolve())

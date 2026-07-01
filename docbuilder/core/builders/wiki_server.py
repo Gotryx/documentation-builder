@@ -3,7 +3,6 @@ Servidor HTTP integrado para visualização da documentação compilada (Wiki Lo
 Roda em segundo plano (thread separada) servindo os arquivos estáticos gerados em HTML/CSS.
 """
 
-import os
 import socket
 import threading
 from http.server import SimpleHTTPRequestHandler, HTTPServer
@@ -13,7 +12,7 @@ from typing import Optional
 
 class WikiHTTPRequestHandler(SimpleHTTPRequestHandler):
     """Handler customizado para silenciar logs excessivos no terminal e garantir tipos MIME corretos."""
-    
+
     def log_message(self, format: str, *args) -> None:
         # Silencia logs no terminal para não sobrecarregar o console da UI
         pass
@@ -37,7 +36,9 @@ class WikiServer:
             return True
 
         if not directory.exists():
-            raise FileNotFoundError(f"Diretório de documentação não encontrado: {directory}")
+            raise FileNotFoundError(
+                f"Diretório de documentação não encontrado: {directory}"
+            )
 
         self._directory = directory
         self._port = port
@@ -49,12 +50,14 @@ class WikiServer:
         # No Python 3.7+, SimpleHTTPRequestHandler aceita o parâmetro directory
         class Handler(WikiHTTPRequestHandler):
             def __init__(self, request, client_address, server):
-                super().__init__(request, client_address, server, directory=str(directory))
+                super().__init__(
+                    request, client_address, server, directory=str(directory)
+                )
 
         try:
             self._server = HTTPServer(("127.0.0.1", self._port), Handler)
             self._is_running = True
-            
+
             # Inicia o loop em uma thread
             self._thread = threading.Thread(target=self._run_server, daemon=True)
             self._thread.start()
@@ -72,7 +75,7 @@ class WikiServer:
         self._server.shutdown()
         # Fecha o socket
         self._server.server_close()
-        
+
         if self._thread:
             self._thread.join(timeout=2.0)
 
@@ -104,4 +107,6 @@ class WikiServer:
                 except socket.error:
                     port += 1
         return start_port
+
+
 pre_push = True

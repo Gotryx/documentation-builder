@@ -1,0 +1,24 @@
+exclude = [
+]
+
+line-length = 88
+indent-width = 4
+
+target-version = "py310"
+
+[lint]
+select = ["E4", "E7", "E9", "F"]
+ignore = []
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+[lint.per-file-ignores]
+"**/__manifest__.py" = ["B018"]
+"**/__init__.py" = ["F401"]
+"**/tests/*.py" = ["F821"]
+
+[format]
+docstring-code-format = true
+docstring-code-line-length = 90

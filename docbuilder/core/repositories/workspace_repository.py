@@ -21,11 +21,11 @@ class WorkspaceRepository(IWorkspaceRepository):
             destination_path.mkdir(parents=True, exist_ok=True)
 
         workspace_file = destination_path / "workspace.yaml"
-        
+
         data = {
             "name": workspace.name,
             "project_paths": workspace.project_paths,
-            "global_settings": workspace.global_settings
+            "global_settings": workspace.global_settings,
         }
 
         with open(workspace_file, "w", encoding="utf-8") as f:
@@ -34,7 +34,7 @@ class WorkspaceRepository(IWorkspaceRepository):
     def load(self, destination_path: Path) -> Workspace:
         """Carrega e reconstrói o Workspace a partir do workspace.yaml."""
         workspace_file = destination_path / "workspace.yaml"
-        
+
         # Se não existir, retorna um workspace padrão em branco
         if not workspace_file.exists():
             return Workspace()
@@ -48,5 +48,5 @@ class WorkspaceRepository(IWorkspaceRepository):
         return Workspace(
             name=data.get("name", "GoTryx Documentation Platform"),
             project_paths=data.get("project_paths", []),
-            global_settings=data.get("global_settings", {})
+            global_settings=data.get("global_settings", {}),
         )

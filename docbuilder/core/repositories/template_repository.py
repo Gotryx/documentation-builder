@@ -26,10 +26,10 @@ class TemplateRepository(ITemplateRepository):
                 margin_right=2.0,
                 header_text="GoTryx Corporation - Confidencial",
                 footer_text="Pág. #PAGE# de #TOTAL#",
-                primary_color="#1E3A8A",    # Azul Escuro Corporativo
+                primary_color="#1E3A8A",  # Azul Escuro Corporativo
                 secondary_color="#3B82F6",  # Azul Claro Acentuado
                 numbering_style="Arabic",
-                logo_enabled=True
+                logo_enabled=True,
             ),
             "Technical": TemplateStyle(
                 name="Technical",
@@ -41,10 +41,10 @@ class TemplateRepository(ITemplateRepository):
                 margin_right=2.0,
                 header_text="GoTryx Technical Documentation",
                 footer_text="Manual do Engenheiro | #PAGE#",
-                primary_color="#0F172A",    # Slate Escuro
+                primary_color="#0F172A",  # Slate Escuro
                 secondary_color="#10B981",  # Verde Técnico (Emerald)
                 numbering_style="Arabic",
-                logo_enabled=True
+                logo_enabled=True,
             ),
             "Book": TemplateStyle(
                 name="Book",
@@ -56,10 +56,10 @@ class TemplateRepository(ITemplateRepository):
                 margin_right=3.0,
                 header_text="#SECTION_TITLE#",
                 footer_text="#PAGE#",
-                primary_color="#111827",    # Quase Preto
+                primary_color="#111827",  # Quase Preto
                 secondary_color="#9CA3AF",  # Cinza Elegante
                 numbering_style="Roman",
-                logo_enabled=False
+                logo_enabled=False,
             ),
             "Manual": TemplateStyle(
                 name="Manual",
@@ -71,11 +71,11 @@ class TemplateRepository(ITemplateRepository):
                 margin_right=2.5,
                 header_text="GoTryx Manual de Operação e Processos",
                 footer_text="Revisão #VERSION# | Página #PAGE#",
-                primary_color="#B91C1C",    # Vermelho Escuro de Alerta
+                primary_color="#B91C1C",  # Vermelho Escuro de Alerta
                 secondary_color="#4B5563",  # Cinza Escuro
                 numbering_style="Arabic",
-                logo_enabled=True
-            )
+                logo_enabled=True,
+            ),
         }
 
     def get_template_style(self, template_name: str) -> TemplateStyle:

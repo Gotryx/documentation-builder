@@ -17,8 +17,8 @@ class SyncProjectUseCase:
         self._provider = cloud_provider
 
     def execute(self, project_path: Path, credentials: dict) -> bool:
-        """ Conecta e executa a sincronização do projeto com o Git/Nuvem."""
+        """Conecta e executa a sincronização do projeto com o Git/Nuvem."""
         if not self._provider.connect(credentials):
             return False
-        
+
         return self._provider.sync_project(project_path)

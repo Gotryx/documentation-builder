@@ -4,7 +4,7 @@ Segue o princípio de inversão de dependência (D do SOLID) da Clean Architectu
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List
 from pathlib import Path
 from docbuilder.core.domain.entities import Project, TemplateStyle
 from docbuilder.core.domain.workspace import Workspace
@@ -40,7 +40,6 @@ class IWorkspaceRepository(ABC):
     def load(self, destination_path: Path) -> Workspace:
         """Carrega o workspace a partir do workspace.yaml."""
         pass
-
 
 
 class ITemplateRepository(ABC):
@@ -79,7 +78,9 @@ class IExporter(ABC):
     """
 
     @abstractmethod
-    def export(self, source_document_path: Path, output_path: Path, template: TemplateStyle) -> None:
+    def export(
+        self, source_document_path: Path, output_path: Path, template: TemplateStyle
+    ) -> None:
         """
         Converte o documento compilado unificado para o formato de destino específico.
         """

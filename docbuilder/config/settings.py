@@ -2,7 +2,6 @@
 Configurações globais e definições de caminhos do GoTryx Documentation Builder.
 """
 
-import sys
 from pathlib import Path
 
 # Diretórios principais

@@ -6,7 +6,14 @@ Lida com a conversão entre o modelo de domínio do Projeto e o arquivo manifest
 import yaml
 from pathlib import Path
 from typing import Dict, Any, List
-from docbuilder.core.domain.entities import Project, Volume, Part, Chapter, Document, Version
+from docbuilder.core.domain.entities import (
+    Project,
+    Volume,
+    Part,
+    Chapter,
+    Document,
+    Version,
+)
 from docbuilder.core.domain.interfaces import IProjectRepository
 
 
@@ -25,7 +32,7 @@ class ProjectRepository(IProjectRepository):
             destination_path.mkdir(parents=True, exist_ok=True)
 
         manifest_file = destination_path / "manifest.yaml"
-        
+
         # Converte a hierarquia de domínio em um dicionário serializável
         data = {
             "title": project.name,
@@ -35,7 +42,7 @@ class ProjectRepository(IProjectRepository):
             "logo": project.logo_path,
             "template": project.template_name,
             "changelog_history": project.changelog_history,
-            "volumes": self._serialize_volumes(project.volumes)
+            "volumes": self._serialize_volumes(project.volumes),
         }
 
         with open(manifest_file, "w", encoding="utf-8") as f:
@@ -47,7 +54,9 @@ class ProjectRepository(IProjectRepository):
         """
         manifest_file = project_path / "manifest.yaml"
         if not manifest_file.exists():
-            raise FileNotFoundError(f"Arquivo de manifesto não encontrado em: {manifest_file}")
+            raise FileNotFoundError(
+                f"Arquivo de manifesto não encontrado em: {manifest_file}"
+            )
 
         with open(manifest_file, "r", encoding="utf-8") as f:
             try:
@@ -67,7 +76,7 @@ class ProjectRepository(IProjectRepository):
             version=version,
             logo_path=data.get("logo"),
             template_name=data.get("template", "Corporate"),
-            changelog_history=data.get("changelog_history", [])
+            changelog_history=data.get("changelog_history", []),
         )
 
         # Reconstrói a árvore hierárquica
@@ -79,25 +88,16 @@ class ProjectRepository(IProjectRepository):
     def _serialize_volumes(self, volumes: List[Volume]) -> List[Dict[str, Any]]:
         serialized = []
         for vol in volumes:
-            serialized_vol = {
-                "title": vol.title,
-                "parts": []
-            }
+            serialized_vol = {"title": vol.title, "parts": []}
             for part in vol.parts:
-                serialized_part = {
-                    "title": part.title,
-                    "chapters": []
-                }
+                serialized_part = {"title": part.title, "chapters": []}
                 for cap in part.chapters:
-                    serialized_cap = {
-                        "title": cap.title,
-                        "documents": []
-                    }
+                    serialized_cap = {"title": cap.title, "documents": []}
                     for doc in cap.documents:
                         serialized_doc = {
                             "title": doc.title,
                             "file_path": doc.file_path,
-                            "format": doc.format
+                            "format": doc.format,
                         }
                         serialized_cap["documents"].append(serialized_doc)
                     serialized_part["chapters"].append(serialized_cap)
@@ -112,21 +112,21 @@ class ProjectRepository(IProjectRepository):
 
         for vol_data in volumes_data:
             vol = Volume(title=vol_data.get("title", ""))
-            
+
             parts_data = vol_data.get("parts", [])
             for part_data in parts_data:
                 part = Part(title=part_data.get("title", ""))
-                
+
                 chapters_data = part_data.get("chapters", [])
                 for cap_data in chapters_data:
                     cap = Chapter(title=cap_data.get("title", ""))
-                    
+
                     docs_data = cap_data.get("documents", [])
                     for doc_data in docs_data:
                         doc = Document(
                             title=doc_data.get("title", ""),
                             file_path=doc_data.get("file_path", ""),
-                            format=doc_data.get("format", "markdown")
+                            format=doc_data.get("format", "markdown"),
                         )
                         cap.add_document(doc)
                     part.add_chapter(cap)

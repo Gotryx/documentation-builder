@@ -3,9 +3,7 @@ Casos de Uso (Use Cases) e Serviços de Gerenciamento do Workspace (Portfólio d
 Permite listar, alternar e registrar novos projetos no painel do Workspace.
 """
 
-import yaml
 from pathlib import Path
-from typing import List, Dict, Any
 from docbuilder.core.domain.workspace import Workspace
 from docbuilder.core.domain.interfaces import IWorkspaceRepository
 
@@ -29,7 +27,9 @@ class SaveWorkspaceUseCase:
     def execute(self, workspace: Workspace, workspace_dir: Path) -> None:
         errors = workspace.validate()
         if errors:
-            raise ValueError(f"O workspace possui inconsistências impeditivas: {', '.join(errors)}")
+            raise ValueError(
+                f"O workspace possui inconsistências impeditivas: {', '.join(errors)}"
+            )
         self._repository.save(workspace, workspace_dir)
 
 

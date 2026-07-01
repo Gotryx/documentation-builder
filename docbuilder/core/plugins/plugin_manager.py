@@ -7,7 +7,7 @@ import importlib.util
 import os
 import sys
 from pathlib import Path
-from typing import List, Dict, Type
+from typing import List, Dict
 from docbuilder.core.domain.interfaces import IPlugin, IExporter
 
 
@@ -35,7 +35,11 @@ class PluginManager:
 
         # Escaneia por módulos python (ex: arquivo.py ou pastas com __init__.py)
         for entry in os.scandir(self.plugins_dir):
-            if entry.is_file() and entry.name.endswith(".py") and not entry.name.startswith("__"):
+            if (
+                entry.is_file()
+                and entry.name.endswith(".py")
+                and not entry.name.startswith("__")
+            ):
                 self._load_plugin_from_file(Path(entry.path))
             elif entry.is_dir() and not entry.name.startswith("__"):
                 init_file = Path(entry.path) / "__init__.py"
@@ -57,12 +61,15 @@ class PluginManager:
                 module = importlib.util.module_from_spec(spec)
                 sys.modules[module_name] = module
                 spec.loader.exec_module(module)
-                
+
                 # Procura por classes que implementam IPlugin
                 self._register_plugin_classes(module)
         except Exception as e:
             # Imprime no stderr do log do sistema caso falhe em carregar o plugin
-            print(f"[PluginManager] Falha ao carregar plugin {module_name}: {e}", file=sys.stderr)
+            print(
+                f"[PluginManager] Falha ao carregar plugin {module_name}: {e}",
+                file=sys.stderr,
+            )
 
     def _load_plugin_from_dir(self, dir_path: Path) -> None:
         module_name = dir_path.name
@@ -70,24 +77,34 @@ class PluginManager:
             module = importlib.import_module(module_name)
             self._register_plugin_classes(module)
         except Exception as e:
-            print(f"[PluginManager] Falha ao carregar plugin de diretório {module_name}: {e}", file=sys.stderr)
+            print(
+                f"[PluginManager] Falha ao carregar plugin de diretório {module_name}: {e}",
+                file=sys.stderr,
+            )
 
     def _register_plugin_classes(self, module) -> None:
         # Varre todos os atributos expostos no módulo
         for attr_name in dir(module):
             attr = getattr(module, attr_name)
             # Verifica se é uma classe, subclasse de IPlugin e não a própria interface IPlugin
-            if isinstance(attr, type) and issubclass(attr, IPlugin) and attr is not IPlugin:
+            if (
+                isinstance(attr, type)
+                and issubclass(attr, IPlugin)
+                and attr is not IPlugin
+            ):
                 try:
                     plugin_instance = attr()
                     plugin_name = plugin_instance.get_name()
-                    
+
                     if plugin_name not in self._loaded_plugins:
                         # Inicializa o plugin passando este gerenciador como contexto
                         plugin_instance.initialize(self)
                         self._loaded_plugins[plugin_name] = plugin_instance
                 except Exception as e:
-                    print(f"[PluginManager] Falha ao instanciar classe de plugin {attr_name}: {e}", file=sys.stderr)
+                    print(
+                        f"[PluginManager] Falha ao instanciar classe de plugin {attr_name}: {e}",
+                        file=sys.stderr,
+                    )
 
     def register_exporter(self, exporter: IExporter) -> None:
         """Porta exposta para que os plugins injetem exportadores de novos formatos."""

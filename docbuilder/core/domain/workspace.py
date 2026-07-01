@@ -14,8 +14,11 @@ class Workspace:
     Entidade de domínio que representa o portfólio de documentação corporativa da empresa.
     Mantém uma lista de caminhos de projetos registrados e configurações globais de sincronização.
     """
+
     name: str = "GoTryx Documentation Platform"
-    project_paths: List[str] = field(default_factory=list)  # caminhos de pastas locais de projetos
+    project_paths: List[str] = field(
+        default_factory=list
+    )  # caminhos de pastas locais de projetos
     global_settings: Dict[str, Any] = field(default_factory=dict)
 
     def register_project(self, project_dir: Path) -> None:
