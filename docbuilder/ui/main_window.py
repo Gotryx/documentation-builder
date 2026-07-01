@@ -513,8 +513,19 @@ class MainWindow(QMainWindow):
             return
 
         folder_path = Path(folder)
-        create_use_case = CreateProjectUseCase(self._project_repo)
 
+        # Validação: se a pasta já contém um projeto (manifest.yaml), avisa e cancela
+        manifest_file = folder_path / "manifest.yaml"
+        if manifest_file.exists():
+            QMessageBox.warning(
+                self,
+                "Projeto Existente",
+                "O diretório selecionado já possui um controle de projeto ativo (manifest.yaml).\n\n"
+                "Para utilizá-lo, use a opção 'Vincular Pasta Existente' no Dashboard principal.",
+            )
+            return
+
+        create_use_case = CreateProjectUseCase(self._project_repo)
         try:
             self.current_project = create_use_case.execute(
                 name="Manual Corporativo Gotryx",
