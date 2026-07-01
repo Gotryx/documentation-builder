@@ -54,6 +54,7 @@ class ProjectDTO:
     version: str
     logo_path: Optional[str] = None
     template_name: str = "Corporate"
+    structure_mode: str = "fluid"
     volumes: List[VolumeDTO] = field(default_factory=list)
     changelog_history: List[str] = field(default_factory=list)
 

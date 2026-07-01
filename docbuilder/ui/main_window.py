@@ -832,6 +832,20 @@ class MainWindow(QMainWindow):
         )
         self.properties_form.addRow("Estilo de Template:", cmb_template)
 
+        cmb_structure = QComboBox()
+        cmb_structure.addItem("Fluido (Linear)", "fluid")
+        cmb_structure.addItem("Estruturado (Por Pastas)", "folders")
+        current_mode = getattr(self.current_project, "structure_mode", "fluid")
+        idx = cmb_structure.findData(current_mode)
+        if idx >= 0:
+            cmb_structure.setCurrentIndex(idx)
+        cmb_structure.currentIndexChanged.connect(
+            lambda i: setattr(
+                self.current_project, "structure_mode", cmb_structure.itemData(i)
+            )
+        )
+        self.properties_form.addRow("Organização do Disco:", cmb_structure)
+
         # Sincronização Git Cloud
         self.properties_form.addRow(
             QLabel("<b>Publicação e Controle de Versão (Git)</b>")

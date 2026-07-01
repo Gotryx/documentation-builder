@@ -102,3 +102,95 @@ def test_full_build_pipeline() -> None:
             "Manual_de_Engenharia_GoTryx" in fn and fn.endswith(".css")
             for fn in [f.name for f in dist_dir.glob("*.css")]
         )
+
+
+def test_project_folder_structure_mode() -> None:
+    # Testa a criação de projeto e a sincronização no modo "folders" (por pastas)
+    with tempfile.TemporaryDirectory() as temp_dir_str:
+        temp_dir = Path(temp_dir_str)
+
+        # Cria a árvore física de pastas e arquivos no disco
+        (temp_dir / "01-planejamento").mkdir()
+        (temp_dir / "02-execucao").mkdir()
+
+        with open(temp_dir / "readme.md", "w", encoding="utf-8") as f:
+            f.write("# Raiz\n\nDocumento raiz.")
+
+        with open(
+            temp_dir / "01-planejamento" / "requisitos.md", "w", encoding="utf-8"
+        ) as f:
+            f.write("# Requisitos\n\nRequisitos de software.")
+
+        with open(temp_dir / "02-execucao" / "testes.md", "w", encoding="utf-8") as f:
+            f.write("# Testes\n\nCódigo de testes.")
+
+        proj_repo = ProjectRepository()
+
+        # 1. Cria o projeto no modo folders
+        create_use_case = CreateProjectUseCase(proj_repo)
+        project_dto = create_use_case.execute(
+            name="Projeto Estruturado",
+            author="Gotryx Dev",
+            language="pt-BR",
+            template="Corporate",
+            target_dir=temp_dir,
+            structure_mode="folders",
+        )
+
+        assert project_dto.structure_mode == "folders"
+
+        # O projeto deve conter o volume e as partes correspondentes
+        assert len(project_dto.volumes) == 1
+        vol = project_dto.volumes[0]
+
+        # Partes criadas: "Parte I - Conteúdo Geral" (readme.md na raiz), "Parte 02 - 01 Planejamento" e "Parte 03 - 02 Execucao"
+        assert len(vol.parts) == 3
+
+        parts_titles = [p.title for p in vol.parts]
+        assert "Parte I - Conteúdo Geral" in parts_titles
+        assert "Parte 02 - 01 Planejamento" in parts_titles
+        assert "Parte 03 - 02 Execucao" in parts_titles
+
+        # 2. Testa o Sincronizador de Pasta no modo folders
+        from docbuilder.core.services.project_services import (
+            ProjectMappingHelper,
+            SyncFolderFilesUseCase,
+        )
+
+        # Adiciona um novo arquivo em subpasta profunda (nível 2)
+        (temp_dir / "01-planejamento" / "detalhes").mkdir()
+        with open(
+            temp_dir / "01-planejamento" / "detalhes" / "design.md",
+            "w",
+            encoding="utf-8",
+        ) as f:
+            f.write("# Design\n\nDetalhes de design.")
+
+        # Converte DTO para Entidade
+        project_entity = ProjectMappingHelper.dto_to_entity(project_dto)
+
+        # Roda a sincronização
+        sync_use_case = SyncFolderFilesUseCase(proj_repo)
+        added_titles = sync_use_case.execute(project_entity, temp_dir)
+
+        # O design.md deve ter sido catalogado
+        assert "Design" in added_titles
+
+        # Converte de volta para DTO para analisar a árvore atualizada
+        updated_dto = ProjectMappingHelper.entity_to_dto(project_entity)
+
+        # Procura a parte do Planejamento
+        part_planejamento = next(
+            p for p in updated_dto.volumes[0].parts if "01 Planejamento" in p.title
+        )
+
+        # O novo capítulo deve ser "Detalhes"
+        chapter_titles = [c.title for c in part_planejamento.chapters]
+        assert any("Detalhes" in t for t in chapter_titles)
+
+        # O documento dentro de Detalhes deve ser "Design"
+        cap_detalhes = next(
+            c for c in part_planejamento.chapters if "Detalhes" in c.title
+        )
+        assert len(cap_detalhes.documents) == 1
+        assert cap_detalhes.documents[0].title == "Design"

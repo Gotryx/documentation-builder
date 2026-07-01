@@ -41,6 +41,7 @@ class ProjectRepository(IProjectRepository):
             "language": project.language,
             "logo": project.logo_path,
             "template": project.template_name,
+            "structure_mode": project.structure_mode,
             "changelog_history": project.changelog_history,
             "volumes": self._serialize_volumes(project.volumes),
         }
@@ -76,6 +77,7 @@ class ProjectRepository(IProjectRepository):
             version=version,
             logo_path=data.get("logo"),
             template_name=data.get("template", "Corporate"),
+            structure_mode=data.get("structure_mode", "fluid"),
             changelog_history=data.get("changelog_history", []),
         )
 

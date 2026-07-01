@@ -63,6 +63,7 @@ class ProjectMappingHelper:
             version=str(project.version),
             logo_path=project.logo_path,
             template_name=project.template_name,
+            structure_mode=project.structure_mode,
             volumes=volumes_dto,
             changelog_history=project.changelog_history,
         )
@@ -76,6 +77,7 @@ class ProjectMappingHelper:
             version=Version.from_string(dto.version),
             logo_path=dto.logo_path,
             template_name=dto.template_name,
+            structure_mode=dto.structure_mode,
             changelog_history=dto.changelog_history,
         )
 
@@ -107,7 +109,13 @@ class CreateProjectUseCase:
         self._repository = repository
 
     def execute(
-        self, name: str, author: str, language: str, template: str, target_dir: Path
+        self,
+        name: str,
+        author: str,
+        language: str,
+        template: str,
+        target_dir: Path,
+        structure_mode: str = "fluid",
     ) -> ProjectDTO:
         # Garante a criação física do diretório
         target_dir.mkdir(parents=True, exist_ok=True)
@@ -121,6 +129,7 @@ class CreateProjectUseCase:
             language=language,
             version=Version(1, 0, 0, 1),
             template_name=template,
+            structure_mode=structure_mode,
             changelog_history=[
                 "1.0.0.1 - Inicialização do projeto de documentação GoTryx."
             ],
@@ -149,41 +158,117 @@ class CreateProjectUseCase:
         )
 
         if found_files:
-            # Monta a estrutura organizacional
-            vol = Volume(title="Volume I - Documentação")
-            part = Part(title="Parte I - Conteúdo Geral")
-            vol.add_part(part)
-            project.add_volume(vol)
-
             # Ordena os arquivos para consistência alfanumérica/numérica
             sorted_files = sorted(found_files, key=lambda p: str(p))
 
-            for idx, file_path in enumerate(sorted_files):
-                relative_path = file_path.relative_to(target_dir)
+            if structure_mode == "fluid":
+                # Modo Fluido (Linear / Flat)
+                vol = Volume(title="Volume I - Documentação")
+                part = Part(title="Parte I - Conteúdo Geral")
+                vol.add_part(part)
+                project.add_volume(vol)
 
-                # O título do capítulo será composto pelas subpastas + nome do arquivo formatados
-                parts_list = list(relative_path.parent.parts)
-                parts_list.append(relative_path.stem)
-                clean_parts = [
-                    p.replace("_", " ").replace("-", " ").title()
-                    for p in parts_list
-                    if p and p != "."
-                ]
-                chapter_title = f"Capítulo {idx + 1:02d} - " + " - ".join(clean_parts)
+                for idx, file_path in enumerate(sorted_files):
+                    relative_path = file_path.relative_to(target_dir)
 
-                ext = file_path.suffix.lower().replace(".", "")
-                fmt = "markdown" if ext in ["md", "markdown"] else ext
+                    parts_list = list(relative_path.parent.parts)
+                    parts_list.append(relative_path.stem)
+                    clean_parts = [
+                        p.replace("_", " ").replace("-", " ").title()
+                        for p in parts_list
+                        if p and p != "."
+                    ]
+                    chapter_title = f"Capítulo {idx + 1:02d} - " + " - ".join(
+                        clean_parts
+                    )
 
-                doc = Document(
-                    title=file_path.stem.replace("_", " ").replace("-", " ").title(),
-                    file_path=str(relative_path),
-                    format=fmt,
-                )
+                    ext = file_path.suffix.lower().replace(".", "")
+                    fmt = "markdown" if ext in ["md", "markdown"] else ext
 
-                # Cada arquivo de documento ganha seu capítulo próprio para fins de navegação e compilação modular
-                chapter = Chapter(title=chapter_title)
-                chapter.add_document(doc)
-                part.add_chapter(chapter)
+                    doc = Document(
+                        title=file_path.stem.replace("_", " ")
+                        .replace("-", " ")
+                        .title(),
+                        file_path=str(relative_path),
+                        format=fmt,
+                    )
+
+                    chapter = Chapter(title=chapter_title)
+                    chapter.add_document(doc)
+                    part.add_chapter(chapter)
+            else:
+                # Modo por Pastas (folders) - Hierárquico e estruturado pelas pastas
+                vol = Volume(title="Volume I - Documentação")
+                project.add_volume(vol)
+
+                # Parte principal padrão para arquivos na raiz
+                default_part = Part(title="Parte I - Conteúdo Geral")
+                vol.add_part(default_part)
+
+                parts_map = {}
+                chapters_map = {}
+
+                for file_path in sorted_files:
+                    relative_path = file_path.relative_to(target_dir)
+                    parts_list = list(relative_path.parent.parts)
+
+                    ext = file_path.suffix.lower().replace(".", "")
+                    fmt = "markdown" if ext in ["md", "markdown"] else ext
+
+                    doc = Document(
+                        title=file_path.stem.replace("_", " ")
+                        .replace("-", " ")
+                        .title(),
+                        file_path=str(relative_path),
+                        format=fmt,
+                    )
+
+                    if not parts_list or str(relative_path.parent) == ".":
+                        # Arquivo solto na raiz
+                        chapter_title = f"Capítulo {len(default_part.chapters) + 1:02d} - {doc.title}"
+                        chapter = Chapter(title=chapter_title)
+                        chapter.add_document(doc)
+                        default_part.add_chapter(chapter)
+                    else:
+                        # Arquivo em subpastas
+                        part_key = parts_list[0]
+                        if part_key not in parts_map:
+                            part_num = len(vol.parts) + 1
+                            part_title = f"Parte {part_num:02d} - {part_key.replace('_', ' ').replace('-', ' ').title()}"
+                            new_part = Part(title=part_title)
+                            vol.add_part(new_part)
+                            parts_map[part_key] = new_part
+
+                        target_part = parts_map[part_key]
+
+                        # O capítulo será baseado nas pastas subsequentes mais o nome do arquivo
+                        if len(parts_list) > 1:
+                            cap_subfolders = [
+                                p.replace("_", " ").replace("-", " ").title()
+                                for p in parts_list[1:]
+                            ]
+                            cap_key = " - ".join(cap_subfolders)
+                        else:
+                            cap_key = doc.title
+
+                        cap_map_key = (target_part.id, cap_key)
+                        if cap_map_key not in chapters_map:
+                            cap_num = len(target_part.chapters) + 1
+                            chapter_title = f"Capítulo {cap_num:02d} - {cap_key}"
+                            new_chapter = Chapter(title=chapter_title)
+                            target_part.add_chapter(new_chapter)
+                            chapters_map[cap_map_key] = new_chapter
+
+                        target_chapter = chapters_map[cap_map_key]
+                        target_chapter.add_document(doc)
+
+                # Remove a Parte Geral se ela ficou sem capítulos
+                if not default_part.chapters:
+                    vol.parts.remove(default_part)
+                    # Reordena a numeração das outras partes
+                    for p_idx, p in enumerate(vol.parts):
+                        title_clean = p.title.split(" - ", 1)[-1]
+                        p.title = f"Parte {p_idx + 1:02d} - {title_clean}"
         else:
             # 2. Pasta vazia: cria estrutura de exemplo padrão com introducao.md
             (target_dir / "documents").mkdir(exist_ok=True)
@@ -295,54 +380,135 @@ class SyncFolderFilesUseCase:
         if not new_files:
             return []
 
-        # 4. Adiciona os novos arquivos como capítulos dedicados
-        # Adicionaremos na primeira Parte do primeiro Volume disponível
+        # 4. Adiciona os novos arquivos respeitando o structure_mode do projeto
         if not project.volumes:
             vol = Volume(title="Volume I - Documentação")
             project.add_volume(vol)
         else:
             vol = project.volumes[0]
 
-        if not vol.parts:
-            part = Part(title="Parte I - Conteúdo Geral")
-            vol.add_part(part)
-        else:
-            part = vol.parts[0]
-
-        # Descobre o índice sequencial para os capítulos
-        start_idx = len(part.chapters) + 1
         added_titles = []
 
-        for idx, file_path in enumerate(new_files):
-            relative_path = file_path.relative_to(project_dir)
+        if project.structure_mode == "fluid":
+            # Modo Fluido (Linear / Flat)
+            if not vol.parts:
+                part = Part(title="Parte I - Conteúdo Geral")
+                vol.add_part(part)
+            else:
+                part = vol.parts[0]
 
-            # Formata o título do capítulo
-            parts_list = list(relative_path.parent.parts)
-            parts_list.append(relative_path.stem)
-            clean_parts = [
-                p.replace("_", " ").replace("-", " ").title()
-                for p in parts_list
-                if p and p != "."
-            ]
-            chapter_title = f"Capítulo {start_idx + idx:02d} - " + " - ".join(
-                clean_parts
+            start_idx = len(part.chapters) + 1
+
+            for idx, file_path in enumerate(new_files):
+                relative_path = file_path.relative_to(project_dir)
+
+                # Formata o título do capítulo
+                parts_list = list(relative_path.parent.parts)
+                parts_list.append(relative_path.stem)
+                clean_parts = [
+                    p.replace("_", " ").replace("-", " ").title()
+                    for p in parts_list
+                    if p and p != "."
+                ]
+                chapter_title = f"Capítulo {start_idx + idx:02d} - " + " - ".join(
+                    clean_parts
+                )
+
+                ext = file_path.suffix.lower().replace(".", "")
+                fmt = "markdown" if ext in ["md", "markdown"] else ext
+
+                from docbuilder.core.domain.entities import Document, Chapter
+
+                doc = Document(
+                    title=file_path.stem.replace("_", " ").replace("-", " ").title(),
+                    file_path=str(relative_path),
+                    format=fmt,
+                )
+
+                chapter = Chapter(title=chapter_title)
+                chapter.add_document(doc)
+                part.add_chapter(chapter)
+                added_titles.append(doc.title)
+        else:
+            # Modo por Pastas (folders) - Hierárquico
+            from docbuilder.core.domain.entities import (
+                Document,
+                Chapter,
+                Part as DomainPart,
             )
 
-            ext = file_path.suffix.lower().replace(".", "")
-            fmt = "markdown" if ext in ["md", "markdown"] else ext
+            for file_path in new_files:
+                relative_path = file_path.relative_to(project_dir)
+                parts_list = list(relative_path.parent.parts)
 
-            from docbuilder.core.domain.entities import Document, Chapter
+                ext = file_path.suffix.lower().replace(".", "")
+                fmt = "markdown" if ext in ["md", "markdown"] else ext
 
-            doc = Document(
-                title=file_path.stem.replace("_", " ").replace("-", " ").title(),
-                file_path=str(relative_path),
-                format=fmt,
-            )
+                doc = Document(
+                    title=file_path.stem.replace("_", " ").replace("-", " ").title(),
+                    file_path=str(relative_path),
+                    format=fmt,
+                )
 
-            chapter = Chapter(title=chapter_title)
-            chapter.add_document(doc)
-            part.add_chapter(chapter)
-            added_titles.append(doc.title)
+                if not parts_list or str(relative_path.parent) == ".":
+                    # Arquivo solto na raiz: vai para a primeira parte
+                    if not vol.parts:
+                        target_part = DomainPart(title="Parte I - Conteúdo Geral")
+                        vol.add_part(target_part)
+                    else:
+                        target_part = vol.parts[0]
+
+                    chapter_title = (
+                        f"Capítulo {len(target_part.chapters) + 1:02d} - {doc.title}"
+                    )
+                    chapter = Chapter(title=chapter_title)
+                    chapter.add_document(doc)
+                    target_part.add_chapter(chapter)
+                    added_titles.append(doc.title)
+                else:
+                    # Arquivo dentro de subpastas
+                    part_title_base = (
+                        parts_list[0].replace("_", " ").replace("-", " ").title()
+                    )
+
+                    # Procura por uma parte correspondente existente
+                    target_part = None
+                    for existing_part in vol.parts:
+                        if part_title_base.lower() in existing_part.title.lower():
+                            target_part = existing_part
+                            break
+
+                    if not target_part:
+                        part_num = len(vol.parts) + 1
+                        part_title = f"Parte {part_num:02d} - {part_title_base}"
+                        target_part = DomainPart(title=part_title)
+                        vol.add_part(target_part)
+
+                    # Define o título do capítulo com base nas pastas de nível 2+ e arquivo
+                    if len(parts_list) > 1:
+                        cap_subfolders = [
+                            p.replace("_", " ").replace("-", " ").title()
+                            for p in parts_list[1:]
+                        ]
+                        cap_key = " - ".join(cap_subfolders)
+                    else:
+                        cap_key = doc.title
+
+                    # Procura por um capítulo correspondente existente na parte
+                    target_chapter = None
+                    for existing_cap in target_part.chapters:
+                        if cap_key.lower() in existing_cap.title.lower():
+                            target_chapter = existing_cap
+                            break
+
+                    if not target_chapter:
+                        cap_num = len(target_part.chapters) + 1
+                        chapter_title = f"Capítulo {cap_num:02d} - {cap_key}"
+                        target_chapter = Chapter(title=chapter_title)
+                        target_part.add_chapter(target_chapter)
+
+                    target_chapter.add_document(doc)
+                    added_titles.append(doc.title)
 
         # 5. Salva o manifesto com a nova estrutura adicionada
         self._repository.save(project, project_dir)

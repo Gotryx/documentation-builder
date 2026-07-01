@@ -171,6 +171,7 @@ class Project:
     version: Version = field(default_factory=Version)
     logo_path: Optional[str] = None
     template_name: str = "Corporate"
+    structure_mode: str = "fluid"
     id: UUID = field(default_factory=uuid4)
     volumes: List[Volume] = field(default_factory=list)
     changelog_history: List[str] = field(default_factory=list)
