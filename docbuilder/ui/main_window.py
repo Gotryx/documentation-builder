@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
     QTextBrowser,
     QFormLayout,
     QFrame,
+    QGridLayout,
     QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
@@ -291,6 +292,12 @@ class MainWindow(QMainWindow):
             "Selecione um documento para pré-visualizar o conteúdo."
         )
         self.tab_editor.addTab(self.web_preview, "Pré-visualização do Documento")
+
+        self.summary_tab = QWidget()
+        self._init_summary_tab()
+        self.tab_editor.addTab(self.summary_tab, "Resumo do Projeto")
+        self.tab_editor.currentChanged.connect(self._on_tab_changed)
+
         center_layout.addWidget(self.tab_editor)
 
         h_splitter.addWidget(center_frame)
@@ -1293,6 +1300,186 @@ class MainWindow(QMainWindow):
         finally:
             # Garante reabilitar todos os botões e a árvore ao final da publicação
             self._set_editor_buttons_enabled(True)
+
+    def _init_summary_tab(self) -> None:
+        """Inicializa o layout e widgets da aba de resumo estatístico do projeto."""
+        layout = QVBoxLayout(self.summary_tab)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
+
+        # Cabeçalho da Aba
+        title_label = QLabel("Painel Estatístico do Projeto")
+        title_label.setObjectName("summaryTitle")
+        layout.addWidget(title_label)
+
+        desc_label = QLabel(
+            "Abaixo estão as métricas consolidadas dos arquivos físicos e do manifesto ativo:"
+        )
+        desc_label.setObjectName("summaryDesc")
+        layout.addWidget(desc_label)
+
+        # Área de Cards de Estatísticas (Grid Layout)
+        self.stats_grid = QGridLayout()
+        self.stats_grid.setSpacing(15)
+        layout.addLayout(self.stats_grid)
+
+        # Adiciona espaço expansível
+        layout.addStretch()
+
+        # Botão de Atualização Manual
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+        self.btn_refresh_stats = QPushButton("Atualizar Métricas")
+        self.btn_refresh_stats.clicked.connect(self._update_project_statistics)
+        btn_layout.addWidget(self.btn_refresh_stats)
+        layout.addLayout(btn_layout)
+
+    def _update_project_statistics(self) -> None:
+        """Calcula dinamicamente as métricas dos arquivos no disco e manifesto e atualiza os cards."""
+        if not self.current_project or not self.current_project_dir:
+            return
+
+        # Limpa o grid de estatísticas
+        while self.stats_grid.count():
+            item = self.stats_grid.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+
+        # Estatísticas básicas do manifesto
+        num_files = 0
+        document_files = []
+        for vol in self.current_project.volumes:
+            for part in vol.parts:
+                for cap in part.chapters:
+                    for doc in cap.documents:
+                        if doc.file_path:
+                            document_files.append(doc.file_path)
+                            num_files += 1
+
+        num_chapters = sum(
+            len(part.chapters)
+            for vol in self.current_project.volumes
+            for part in vol.parts
+        )
+
+        # Calcula pastas únicas
+        unique_dirs = set()
+        for fp in document_files:
+            p = Path(fp)
+            if len(p.parts) > 1:
+                unique_dirs.add(str(p.parent))
+        num_dirs = len(unique_dirs)
+
+        # Métricas detalhadas por varredura de arquivos
+        total_words = 0
+        total_headings = 0
+        total_tables = 0
+        total_images = 0
+
+        for rel_path_str in document_files:
+            abs_path = self.current_project_dir / rel_path_str
+            if not abs_path.exists() or not abs_path.is_file():
+                continue
+
+            suffix = abs_path.suffix.lower()
+            if suffix in [".md", ".markdown", ".txt", ".html", ".htm"]:
+                try:
+                    with open(abs_path, "r", encoding="utf-8", errors="ignore") as f:
+                        content = f.read()
+
+                    # Contagem básica de palavras
+                    total_words += len(content.split())
+
+                    # Contagem básica de títulos e imagens/tabelas no Markdown
+                    if suffix in [".md", ".markdown"]:
+                        lines = content.splitlines()
+                        for line in lines:
+                            stripped = line.strip()
+                            if stripped.startswith("#"):
+                                total_headings += 1
+                            if "![" in stripped or "<img" in stripped:
+                                total_images += 1
+                            if "|" in stripped and "---" not in stripped:
+                                pass
+
+                        # Conta tabelas por bloco demarcado
+                        total_tables += content.count("\n|") // 3
+                    elif suffix in [".html", ".htm"]:
+                        total_headings += (
+                            content.count("<h1")
+                            + content.count("<h2")
+                            + content.count("<h3")
+                        )
+                        total_images += content.count("<img")
+                        total_tables += content.count("<table")
+
+                except Exception:
+                    pass
+            elif suffix == ".docx":
+                try:
+                    import docx
+
+                    doc_obj = docx.Document(abs_path)
+
+                    # Contagem de palavras e títulos no DOCX
+                    for para in doc_obj.paragraphs:
+                        total_words += len(para.text.split())
+                        style_name = para.style.name.lower() if para.style else ""
+                        if "heading" in style_name or "título" in style_name:
+                            total_headings += 1
+
+                    total_tables += len(doc_obj.tables)
+                    try:
+                        total_images += len(doc_obj.inline_shapes)
+                    except Exception:
+                        pass
+                except Exception:
+                    pass
+
+        # Cria os Cards no Grid (2 colunas, 3 linhas)
+        metrics = [
+            ("Arquivos Catalogados", f"{num_files} documentos", "📁"),
+            ("Pastas de Conteúdo", f"{num_dirs} diretórios", "📂"),
+            ("Tópicos e Seções", f"{num_chapters} capítulos", "📖"),
+            ("Volume de Texto", f"{total_words:,} palavras", "✍️"),
+            ("Títulos e Cabeçalhos", f"{total_headings} cabeçalhos", "🏷️"),
+            (
+                "Elementos Gráficos",
+                f"{total_images} imagens / {total_tables} tabelas",
+                "📊",
+            ),
+        ]
+
+        card_idx = 0
+        for title, value, icon in metrics:
+            card = QFrame()
+            card.setObjectName("summaryCard")
+            card_layout = QVBoxLayout(card)
+            card_layout.setContentsMargins(15, 15, 15, 15)
+            card_layout.setSpacing(5)
+
+            icon_lbl = QLabel(icon)
+            icon_lbl.setStyleSheet("font-size: 24px;")
+            card_layout.addWidget(icon_lbl)
+
+            val_lbl = QLabel(value)
+            val_lbl.setObjectName("cardValue")
+            card_layout.addWidget(val_lbl)
+
+            title_lbl = QLabel(title)
+            title_lbl.setObjectName("cardTitle")
+            card_layout.addWidget(title_lbl)
+
+            row = card_idx // 2
+            col = card_idx % 2
+            self.stats_grid.addWidget(card, row, col)
+            card_idx += 1
+
+    def _on_tab_changed(self, index: int) -> None:
+        """Acionado ao alternar de aba no painel central."""
+        if self.tab_editor.widget(index) == self.summary_tab:
+            self._update_project_statistics()
 
     def closeEvent(self, event) -> None:
         """Garante fechar o servidor Wiki ao fechar a janela principal."""

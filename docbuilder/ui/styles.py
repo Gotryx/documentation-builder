@@ -262,4 +262,39 @@ def get_stylesheet() -> str:
         padding: 6px 12px;
         border-radius: 4px;
     }
+
+    /* Aba de Resumo Estatístico do Projeto */
+    QLabel#summaryTitle {
+        font-size: 18px;
+        font-weight: bold;
+        color: #3B82F6;
+        margin-bottom: 2px;
+    }
+
+    QLabel#summaryDesc {
+        font-size: 13px;
+        color: #94A3B8;
+        margin-bottom: 10px;
+    }
+
+    QFrame#summaryCard {
+        background-color: #0F172A;
+        border: 1px solid #334155;
+        border-radius: 8px;
+    }
+
+    QFrame#summaryCard:hover {
+        border-color: #3B82F6;
+    }
+
+    QLabel#cardValue {
+        font-size: 18px;
+        font-weight: bold;
+        color: #F8FAFC;
+    }
+
+    QLabel#cardTitle {
+        font-size: 12px;
+        color: #94A3B8;
+    }
     """
