@@ -6,7 +6,7 @@ Lida com criação, carregamento, salvamento, importação de documentos e reord
 import shutil
 from pathlib import Path
 from uuid import UUID
-from typing import List, Optional
+from typing import List, Optional, Dict
 from docbuilder.core.domain.entities import Project, Volume, Part, Chapter, Document, Version
 from docbuilder.core.domain.interfaces import IProjectRepository
 from docbuilder.core.services.dtos import ProjectDTO, VolumeDTO, PartDTO, ChapterDTO, DocumentDTO
@@ -101,8 +101,7 @@ class CreateProjectUseCase:
         # Garante a criação física do diretório
         target_dir.mkdir(parents=True, exist_ok=True)
         
-        # Cria a pasta de documentos importados do projeto para garantir portabilidade
-        (target_dir / "documents").mkdir(exist_ok=True)
+        # Garante a criação da pasta resources para logos/assets
         (target_dir / "resources").mkdir(exist_ok=True)
 
         project = Project(
@@ -114,30 +113,89 @@ class CreateProjectUseCase:
             changelog_history=["1.0.0.1 - Inicialização do projeto de documentação GoTryx."]
         )
 
-        # Cria uma estrutura inicial de exemplo
-        vol_exemplo = Volume(title="Volume I - Guia")
-        part_exemplo = Part(title="Parte I - Fundamentos")
-        cap_exemplo = Chapter(title="Capítulo 01 - Introdução")
+        # 1. Varre o diretório em busca de documentos suportados já existentes
+        supported_extensions = {".md", ".markdown", ".docx", ".odt", ".txt", ".html", ".htm"}
+        found_files: List[Path] = []
         
-        # Cria um arquivo markdown físico inicial de boas-vindas
-        doc_path = target_dir / "documents" / "introducao.md"
-        with open(doc_path, "w", encoding="utf-8") as f:
-            f.write("# Introdução ao Projeto\n\nEste é o documento inicial do seu novo projeto de documentação GoTryx.\nEdite-o ou importe novos arquivos.")
+        # Escaneamento recursivo (limite de profundidade de 3 níveis para evitar loops)
+        self._scan_directory(target_dir, target_dir, supported_extensions, found_files, depth=0, max_depth=3)
 
-        doc_exemplo = Document(
-            title="Visão Geral",
-            file_path="documents/introducao.md",
-            format="markdown"
-        )
-        cap_exemplo.add_document(doc_exemplo)
-        part_exemplo.add_chapter(cap_exemplo)
-        vol_exemplo.add_part(part_exemplo)
-        project.add_volume(vol_exemplo)
+        if found_files:
+            # Monta a estrutura organizacional
+            vol = Volume(title="Volume I - Documentação")
+            part = Part(title="Parte I - Conteúdo Geral")
+            vol.add_part(part)
+            project.add_volume(vol)
 
-        # Salva o projeto inicial
+            # Ordena os arquivos para consistência alfanumérica/numérica
+            sorted_files = sorted(found_files, key=lambda p: str(p))
+
+            for idx, file_path in enumerate(sorted_files):
+                relative_path = file_path.relative_to(target_dir)
+                
+                # O título do capítulo será composto pelas subpastas + nome do arquivo formatados
+                parts_list = list(relative_path.parent.parts)
+                parts_list.append(relative_path.stem)
+                clean_parts = [p.replace("_", " ").replace("-", " ").title() for p in parts_list if p and p != "."]
+                chapter_title = f"Capítulo {idx+1:02d} - " + " - ".join(clean_parts)
+
+                ext = file_path.suffix.lower().replace(".", "")
+                fmt = "markdown" if ext in ["md", "markdown"] else ext
+
+                doc = Document(
+                    title=file_path.stem.replace("_", " ").replace("-", " ").title(),
+                    file_path=str(relative_path),
+                    format=fmt
+                )
+
+                # Cada arquivo de documento ganha seu capítulo próprio para fins de navegação e compilação modular
+                chapter = Chapter(title=chapter_title)
+                chapter.add_document(doc)
+                part.add_chapter(chapter)
+        else:
+            # 2. Pasta vazia: cria estrutura de exemplo padrão com introducao.md
+            (target_dir / "documents").mkdir(exist_ok=True)
+            
+            vol_exemplo = Volume(title="Volume I - Guia")
+            part_exemplo = Part(title="Parte I - Fundamentos")
+            cap_exemplo = Chapter(title="Capítulo 01 - Introdução")
+            
+            doc_path = target_dir / "documents" / "introducao.md"
+            with open(doc_path, "w", encoding="utf-8") as f:
+                f.write("# Introdução ao Projeto\n\nEste é o documento inicial do seu novo projeto de documentação GoTryx.\nEdite-o ou importe novos arquivos.")
+
+            doc_exemplo = Document(
+                title="Visão Geral",
+                file_path="documents/introducao.md",
+                format="markdown"
+            )
+            cap_exemplo.add_document(doc_exemplo)
+            part_exemplo.add_chapter(cap_exemplo)
+            vol_exemplo.add_part(part_exemplo)
+            project.add_volume(vol_exemplo)
+
+        # Salva o projeto
         self._repository.save(project, target_dir)
 
         return ProjectMappingHelper.entity_to_dto(project)
+
+    def _scan_directory(self, base_dir: Path, current_dir: Path, extensions: set, file_list: list, depth: int, max_depth: int) -> None:
+        if depth > max_depth:
+            return
+
+        try:
+            for item in current_dir.iterdir():
+                # Ignora arquivos/pastas ocultas, diretórios de build, recursos, pastas de exemplo geradas e ambientes virtuais
+                if item.name.startswith(".") or item.name in ["dist", "resources", "documents", "__pycache__", "node_modules", "ambiente", "venv", ".venv"]:
+                    continue
+                
+                if item.is_file() and item.suffix.lower() in extensions:
+                    file_list.append(item)
+                elif item.is_dir():
+                    self._scan_directory(base_dir, item, extensions, file_list, depth + 1, max_depth)
+        except PermissionError:
+            pass
+
 
 
 class LoadProjectUseCase:

@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
     QTreeWidget, QTreeWidgetItem, QLabel, QLineEdit, QComboBox,
     QPushButton, QTextEdit, QCheckBox, QFileDialog, QMessageBox,
     QTabWidget, QTextBrowser, QFormLayout, QFrame, QStackedWidget,
-    QTableWidget, QTableWidgetItem, QHeaderView
+    QTableWidget, QTableWidgetItem, QHeaderView, QApplication
 )
 from PySide6.QtGui import QIcon, QFont
 
@@ -55,6 +55,11 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("GoTryx Documentation Platform")
         self.resize(1200, 800)
         self.setStyleSheet(get_stylesheet())
+
+        # Definição do ícone da janela
+        icon_path = Path(__file__).parent / "resources" / "app_icon.png"
+        if icon_path.exists():
+            self.setWindowIcon(QIcon(str(icon_path)))
 
         # Instanciação dos Repositórios e Motores
         self._project_repo = ProjectRepository()
@@ -150,13 +155,13 @@ class MainWindow(QMainWindow):
 
         # Barra Superior do Editor
         top_bar = QHBoxLayout()
-        btn_back = QPushButton("← Voltar ao Portfólio")
-        btn_back.clicked.connect(self._on_back_to_dashboard)
-        top_bar.addWidget(btn_back)
+        self.btn_back = QPushButton("← Voltar ao Portfólio")
+        self.btn_back.clicked.connect(self._on_back_to_dashboard)
+        top_bar.addWidget(self.btn_back)
 
-        btn_save = QPushButton("Salvar Alterações")
-        btn_save.clicked.connect(self._on_save_project)
-        top_bar.addWidget(btn_save)
+        self.btn_save = QPushButton("Salvar Alterações")
+        self.btn_save.clicked.connect(self._on_save_project)
+        top_bar.addWidget(self.btn_save)
         top_bar.addStretch()
 
         # Controles do Servidor Wiki
@@ -200,27 +205,27 @@ class MainWindow(QMainWindow):
 
         # Botões da Árvore
         tree_buttons = QHBoxLayout()
-        btn_add_vol = QPushButton("+ Vol")
-        btn_add_vol.clicked.connect(self._on_add_volume)
-        btn_add_part = QPushButton("+ Part")
-        btn_add_part.clicked.connect(self._on_add_part)
-        btn_add_cap = QPushButton("+ Cap")
-        btn_add_cap.clicked.connect(self._on_add_chapter)
+        self.btn_add_vol = QPushButton("+ Vol")
+        self.btn_add_vol.clicked.connect(self._on_add_volume)
+        self.btn_add_part = QPushButton("+ Part")
+        self.btn_add_part.clicked.connect(self._on_add_part)
+        self.btn_add_cap = QPushButton("+ Cap")
+        self.btn_add_cap.clicked.connect(self._on_add_chapter)
         
-        tree_buttons.addWidget(btn_add_vol)
-        tree_buttons.addWidget(btn_add_part)
-        tree_buttons.addWidget(btn_add_cap)
+        tree_buttons.addWidget(self.btn_add_vol)
+        tree_buttons.addWidget(self.btn_add_part)
+        tree_buttons.addWidget(self.btn_add_cap)
         left_layout.addLayout(tree_buttons)
 
         tree_buttons_2 = QHBoxLayout()
-        btn_import = QPushButton("Importar Doc")
-        btn_import.clicked.connect(self._on_import_doc)
-        btn_delete = QPushButton("Remover")
-        btn_delete.setObjectName("dangerButton")
-        btn_delete.clicked.connect(self._on_delete_item)
+        self.btn_import = QPushButton("Importar Doc")
+        self.btn_import.clicked.connect(self._on_import_doc)
+        self.btn_delete = QPushButton("Remover")
+        self.btn_delete.setObjectName("dangerButton")
+        self.btn_delete.clicked.connect(self._on_delete_item)
         
-        tree_buttons_2.addWidget(btn_import)
-        tree_buttons_2.addWidget(btn_delete)
+        tree_buttons_2.addWidget(self.btn_import)
+        tree_buttons_2.addWidget(self.btn_delete)
         left_layout.addLayout(tree_buttons_2)
 
         h_splitter.addWidget(left_frame)
@@ -276,13 +281,13 @@ class MainWindow(QMainWindow):
         build_layout.addWidget(self.chk_html)
         build_layout.addWidget(self.chk_markdown)
 
-        btn_validate = QPushButton("Validar Estrutura")
-        btn_validate.clicked.connect(self._on_validate_project)
-        self.btn_build = QPushButton("Gerar & Publicar")
+        self.btn_validate = QPushButton("Validar Estrutura")
+        self.btn_validate.clicked.connect(self._on_validate_project)
+        self.btn_build = QPushButton("Publicar")
         self.btn_build.setObjectName("accentButton")
         self.btn_build.clicked.connect(self._on_build_project)
 
-        build_layout.addWidget(btn_validate)
+        build_layout.addWidget(self.btn_validate)
         build_layout.addWidget(self.btn_build)
         bottom_layout.addWidget(build_frame)
 
@@ -304,6 +309,25 @@ class MainWindow(QMainWindow):
         layout.addWidget(bottom_splitter)
 
         self.stacked_widget.addWidget(widget)
+
+    def _set_editor_buttons_enabled(self, enabled: bool) -> None:
+        """Habilita ou desabilita os botões do editor para evitar concorrência durante o build."""
+        self.btn_back.setEnabled(enabled)
+        self.btn_save.setEnabled(enabled)
+        self.btn_wiki_server.setEnabled(enabled)
+        if enabled:
+            self.btn_open_portal.setEnabled(self._wiki_server.is_running())
+        else:
+            self.btn_open_portal.setEnabled(False)
+            
+        self.btn_add_vol.setEnabled(enabled)
+        self.btn_add_part.setEnabled(enabled)
+        self.btn_add_cap.setEnabled(enabled)
+        self.btn_import.setEnabled(enabled)
+        self.btn_delete.setEnabled(enabled)
+        self.btn_validate.setEnabled(enabled)
+        self.btn_build.setEnabled(enabled)
+        self.tree_manifest.setEnabled(enabled)
 
     # ==========================================
     # LOGS E FLUXO DO PORTFÓLIO (TELA 1)
@@ -690,11 +714,57 @@ class MainWindow(QMainWindow):
         remote_url_str = self.current_project.global_settings.get("remote_url", "") if hasattr(self.current_project, "global_settings") else ""
         self.txt_remote_url = QLineEdit(remote_url_str)
         self.txt_remote_url.setPlaceholderText("https://github.com/empresa/repo.git")
+        self.txt_remote_url.textChanged.connect(self._validate_git_sync_state)
         self.properties_form.addRow("Repos. Remoto:", self.txt_remote_url)
 
-        btn_sync = QPushButton("Sincronizar Cloud (Git Push)")
-        btn_sync.clicked.connect(self._on_sync_git)
-        self.properties_form.addRow(btn_sync)
+        self.btn_sync = QPushButton("Sincronizar Cloud (Git Push)")
+        self.btn_sync.clicked.connect(self._on_sync_git)
+        self.properties_form.addRow(self.btn_sync)
+
+        # Valida o estado inicial do botão de sincronização
+        self._validate_git_sync_state()
+
+    def _validate_git_sync_state(self) -> None:
+        """Habilita o botão de sincronização Git apenas se houver repositório remoto informado e repositório Git local válido."""
+        try:
+            if not hasattr(self, "btn_sync") or not hasattr(self, "txt_remote_url"):
+                return
+            # Verifica se os widgets do C++ não foram deletados da tela
+            self.btn_sync.parent()
+            self.txt_remote_url.parent()
+        except RuntimeError:
+            return
+
+        remote_url = self.txt_remote_url.text().strip()
+        
+        # 1. Campo não pode estar vazio
+        if not remote_url:
+            self.btn_sync.setEnabled(False)
+            self.btn_sync.setToolTip("Insira a URL do repositório remoto para habilitar a sincronização.")
+            return
+
+        # 2. O diretório do projeto deve possuir um repositório Git inicializado (.git existe)
+        is_git_repo = False
+        if self.current_project_dir:
+            is_git_repo = (self.current_project_dir / ".git").exists()
+
+        if not is_git_repo:
+            self.btn_sync.setEnabled(False)
+            self.btn_sync.setToolTip("O diretório ativo do projeto não possui um repositório Git inicializado (.git).")
+            return
+
+        # 3. Validação de prefixo básico da URL
+        valid_prefixes = ("http://", "https://", "git@", "ssh://")
+        is_valid_url = any(remote_url.startswith(p) for p in valid_prefixes)
+
+        if not is_valid_url:
+            self.btn_sync.setEnabled(False)
+            self.btn_sync.setToolTip("URL remota inválida. Use formatos HTTPS (https://) ou SSH (git@).")
+            return
+
+        # Passou em todas as validações, ativa o botão
+        self.btn_sync.setEnabled(True)
+        self.btn_sync.setToolTip("Clique para sincronizar suas alterações com o repositório remoto (Git Push).")
 
     def _update_project_name_live(self, text: str) -> None:
         if self.current_project:
@@ -763,8 +833,32 @@ class MainWindow(QMainWindow):
             self.web_preview.setHtml("<span style='color: red;'>Erro: Arquivo físico ausente.</span>")
             return
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                text = f.read()
+            # Pré-visualização nativa para arquivos DOCX
+            if doc_format == "docx":
+                import docx
+                doc = docx.Document(file_path)
+                html_parts = []
+                for p in doc.paragraphs:
+                    text = p.text.strip()
+                    if text:
+                        if p.style.name.startswith("Heading"):
+                            html_parts.append(f"<h3>{text}</h3>")
+                        else:
+                            html_parts.append(f"<p>{text}</p>")
+                if not html_parts:
+                    self.web_preview.setHtml("<p><i>[Documento DOCX vazio ou sem parágrafos de texto]</i></p>")
+                else:
+                    self.web_preview.setHtml("".join(html_parts))
+                return
+
+            # Pré-visualização para formatos de texto plano
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    text = f.read()
+            except UnicodeDecodeError:
+                with open(file_path, "r", encoding="latin-1") as f:
+                    text = f.read()
+
             if doc_format in ["markdown", "md"]:
                 import markdown
                 html = markdown.markdown(text, extensions=['tables', 'fenced_code'])
@@ -884,59 +978,68 @@ class MainWindow(QMainWindow):
     def _on_build_project(self) -> None:
         if not self.current_project or not self.current_project_dir:
             return
-        self._synchronize_dto_from_tree()
-        self.txt_log.clear()
 
-        formats = []
-        if self.chk_docx.isChecked():
-            formats.append("docx")
-        if self.chk_pdf.isChecked():
-            formats.append("pdf")
-        if self.chk_html.isChecked():
-            formats.append("html")
-        if self.chk_markdown.isChecked():
-            formats.append("md")
+        # Desabilita todos os botões e interações do editor durante o build
+        self._set_editor_buttons_enabled(False)
+        QApplication.processEvents()  # Força o Qt a processar e pintar as alterações da UI na tela imediatamente
+        
+        try:
+            self._synchronize_dto_from_tree()
+            self.txt_log.clear()
 
-        if not formats:
-            QMessageBox.warning(self, "Alerta", "Selecione ao menos um formato de saída.")
-            return
+            formats = []
+            if self.chk_docx.isChecked():
+                formats.append("docx")
+            if self.chk_pdf.isChecked():
+                formats.append("pdf")
+            if self.chk_html.isChecked():
+                formats.append("html")
+            if self.chk_markdown.isChecked():
+                formats.append("md")
 
-        # Validação automática
-        self._log_info("Validando antes de publicar...")
-        val_result = ValidateProjectUseCase(self._template_repo).execute(self.current_project, self.current_project_dir)
-        if not val_result.is_valid:
-            self._log_error("Cancelado devido a inconsistências:")
-            for err in val_result.errors:
-                self._log_error(err)
-            return
+            if not formats:
+                QMessageBox.warning(self, "Alerta", "Selecione ao menos um formato de saída.")
+                return
 
-        # Executa Build
-        docx_exp = DocxExporter()
-        pdf_exp = PdfExporter(docx_exp)
-        html_exp = HtmlExporter()
-        md_exp = MarkdownExporter()
+            # Validação automática
+            self._log_info("Validando antes de publicar...")
+            val_result = ValidateProjectUseCase(self._template_repo).execute(self.current_project, self.current_project_dir)
+            if not val_result.is_valid:
+                self._log_error("Cancelado devido a inconsistências:")
+                for err in val_result.errors:
+                    self._log_error(err)
+                return
 
-        use_case = BuildProjectUseCase(self._template_repo, DocumentBuilder(), [docx_exp, pdf_exp, html_exp, md_exp])
-        self._log_info("Iniciando compilação de publicação...")
-        result = use_case.execute(self.current_project, self.current_project_dir, formats)
+            # Executa Build
+            docx_exp = DocxExporter()
+            pdf_exp = PdfExporter(docx_exp)
+            html_exp = HtmlExporter()
+            md_exp = MarkdownExporter()
 
-        for log in result.logs:
-            if "ERRO" in log or "Erro" in log:
-                self._log_error(log)
-            elif "Aviso" in log or "AVISO" in log:
-                self._log_warning(log)
+            use_case = BuildProjectUseCase(self._template_repo, DocumentBuilder(), [docx_exp, pdf_exp, html_exp, md_exp])
+            self._log_info("Iniciando compilação de publicação...")
+            result = use_case.execute(self.current_project, self.current_project_dir, formats)
+
+            for log in result.logs:
+                if "ERRO" in log or "Erro" in log:
+                    self._log_error(log)
+                elif "Aviso" in log or "AVISO" in log:
+                    self._log_warning(log)
+                else:
+                    self._log_info(log)
+
+            if result.success:
+                self._log_info("Publicação concluída com sucesso!")
+                QMessageBox.information(self, "Sucesso", "Documentação gerada com sucesso na pasta dist/!")
+                # Se o servidor Wiki estiver rodando, reinicia-o silenciosamente para atualizar o conteúdo
+                if self._wiki_server.is_running():
+                    self._wiki_server.stop()
+                    self._wiki_server.start(self.current_project_dir / "dist", port=8080)
             else:
-                self._log_info(log)
-
-        if result.success:
-            self._log_info("Publicação concluída com sucesso!")
-            QMessageBox.information(self, "Sucesso", "Documentação gerada com sucesso na pasta dist/!")
-            # Se o servidor Wiki estiver rodando, reinicia-o silenciosamente para atualizar o conteúdo
-            if self._wiki_server.is_running():
-                self._wiki_server.stop()
-                self._wiki_server.start(self.current_project_dir / "dist", port=8080)
-        else:
-            QMessageBox.critical(self, "Falha de Publicação", result.message)
+                QMessageBox.critical(self, "Falha de Publicação", result.message)
+        finally:
+            # Garante reabilitar todos os botões e a árvore ao final da publicação
+            self._set_editor_buttons_enabled(True)
 
     def closeEvent(self, event) -> None:
         """Garante fechar o servidor Wiki ao fechar a janela principal."""

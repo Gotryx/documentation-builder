@@ -3,6 +3,7 @@ Implementação do exportador de formato PDF utilizando o LibreOffice Headless.
 Utiliza o DocxExporter para gerar uma versão do Word intermediária e a converte em PDF via linha de comando do LibreOffice.
 """
 
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -75,4 +76,4 @@ class PdfExporter(IExporter):
             if output_path.exists():
                 output_path.unlink()
             
-            generated_pdf.rename(output_path)
+            shutil.move(generated_pdf, output_path)

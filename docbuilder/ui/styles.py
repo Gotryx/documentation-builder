@@ -134,6 +134,13 @@ def get_stylesheet() -> str:
         background-color: #DC2626;
     }
 
+    /* Estado Desabilitado (Disabled) - Cores Apagadas e Foscas */
+    QPushButton:disabled, QPushButton#accentButton:disabled, QPushButton#dangerButton:disabled {
+        background-color: #0F172A;
+        border: 1px dashed #334155;
+        color: #64748B;
+    }
+
     /* Console de Logs / Editor de texto */
     QTextEdit {
         background-color: #0F172A;
@@ -198,5 +205,61 @@ def get_stylesheet() -> str:
     QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
         border: none;
         background: none;
+    }
+
+    /* Estilização explícita de QMessageBox e Diálogos para evitar texto invisível (branco no claro) */
+    QMessageBox {
+        background-color: #1E293B;
+        border: 1px solid #334155;
+    }
+
+    QMessageBox QLabel {
+        color: #F8FAFC;
+        background-color: transparent;
+        font-size: 13px;
+        min-width: 250px;
+    }
+
+    QMessageBox QPushButton {
+        background-color: #334155;
+        border: 1px solid #475569;
+        border-radius: 4px;
+        color: #F8FAFC;
+        padding: 6px 14px;
+        min-width: 70px;
+    }
+
+    QMessageBox QPushButton:hover {
+        background-color: #475569;
+    }
+
+    QFileDialog {
+        background-color: #1E293B;
+        color: #F8FAFC;
+    }
+
+    QFileDialog QLabel {
+        color: #F8FAFC;
+    }
+
+    QFileDialog QListView, QFileDialog QTreeView {
+        background-color: #0F172A;
+        color: #E2E8F0;
+        border: 1px solid #334155;
+    }
+
+    QFileDialog QLineEdit {
+        background-color: #0F172A;
+        color: #F8FAFC;
+        border: 1px solid #334155;
+        padding: 4px;
+    }
+
+    QFileDialog QPushButton {
+        background-color: #334155;
+        color: #F8FAFC;
+        border: 1px solid #475569;
+        padding: 6px 12px;
+        border-radius: 4px;
     }
     """

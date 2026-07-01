@@ -50,10 +50,10 @@ def test_full_build_pipeline() -> None:
         )
         # Vamos remover o placeholder inserido incorretamente e colocar o DTO estruturado correto
         cap_dto.documents.pop()
-        
+        from uuid import uuid4
         from docbuilder.core.services.dtos import DocumentDTO
         cap_dto.documents.append(DocumentDTO(
-            id="doc-2-uuid",
+            id=str(uuid4()),
             title="Arquitetura do Core",
             file_path="documents/arquitetura.md",
             format="markdown"

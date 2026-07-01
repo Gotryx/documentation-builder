@@ -151,6 +151,14 @@ class DocumentBuilder(IDocumentBuilder):
 
         return temp_file_path
 
+    def _read_file_resilient(self, file_path: Path) -> str:
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                return f.read()
+        except UnicodeDecodeError:
+            with open(file_path, "r", encoding="latin-1") as f:
+                return f.read()
+
     def _generate_toc(self, project: Project) -> List[Block]:
         """Gera a árvore estruturada do sumário como blocos AST."""
         blocks: List[Block] = []
@@ -188,8 +196,7 @@ class DocumentBuilder(IDocumentBuilder):
 
     def _parse_markdown(self, file_path: Path, base_path: Path) -> List[Block]:
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                md_text = f.read()
+            md_text = self._read_file_resilient(file_path)
             # Converte Markdown para HTML (com suporte a tabelas e atributos)
             html_text = markdown.markdown(md_text, extensions=['tables', 'fenced_code', 'attr_list'])
             return self._parse_html_string(html_text, base_path)
@@ -198,8 +205,7 @@ class DocumentBuilder(IDocumentBuilder):
 
     def _parse_html(self, file_path: Path, base_path: Path) -> List[Block]:
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                html_content = f.read()
+            html_content = self._read_file_resilient(file_path)
             return self._parse_html_string(html_content, base_path)
         except Exception as e:
             return [ParagraphBlock(runs=[TextRun(text=f"[Falha ao ler HTML {file_path.name}: {e}]", bold=True)])]
@@ -292,8 +298,8 @@ class DocumentBuilder(IDocumentBuilder):
     def _parse_txt(self, file_path: Path) -> List[Block]:
         blocks: List[Block] = []
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                lines = f.readlines()
+            content = self._read_file_resilient(file_path)
+            lines = content.splitlines()
             for line in lines:
                 stripped = line.strip()
                 if stripped:
